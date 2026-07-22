@@ -9,7 +9,6 @@ import { z } from "zod";
 import AppDocument from "@/components/AppDocument";
 import AppLocale from "@/components/AppLocale";
 import AppTheme from "@/components/AppTheme";
-import AppVersion from "@/components/AppVersion";
 import { useAntdForm, useBrowserTheme } from "@/hooks";
 
 import { authWithPassword } from "@/repository/admin";
@@ -110,7 +109,6 @@ const Login = () => {
                     <AppLocale.LinkButton />
                     <AppTheme.LinkButton />
                     <AppDocument.LinkButton />
-                    <AppVersion.LinkButton />
                   </Space>
                 </div>
               </div>
@@ -120,11 +118,6 @@ const Login = () => {
                     <AppLocale.LinkButton />
                     <AppTheme.LinkButton />
                     <AppDocument.LinkButton />
-                  </Space>
-                </div>
-                <div className="mt-6 flex items-center justify-center">
-                  <Space align="center" separator={<Divider orientation="vertical" />} size={4}>
-                    <AppVersion.LinkButton />
                   </Space>
                 </div>
               </div>

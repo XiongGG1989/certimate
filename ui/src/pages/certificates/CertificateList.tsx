@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { IconBrowserShare, IconCertificate, IconDots, IconExternalLink, IconReload, IconShieldCancel, IconTrash } from "@tabler/icons-react";
+import { IconBrowserShare, IconCertificate, IconDots, IconEdit, IconReload, IconShieldCancel, IconTrash, IconUpload } from "@tabler/icons-react";
 import { useMount, useRequest } from "ahooks";
 import { App, Button, Dropdown, Input, Segmented, Skeleton, Table, type TableProps, Typography, theme } from "antd";
 import dayjs from "dayjs";
@@ -9,6 +9,7 @@ import { ClientResponseError } from "pocketbase";
 
 import { revoke as revokeCertificate } from "@/api/certificates";
 import CertificateDetailDrawer from "@/components/certificate/CertificateDetailDrawer";
+import CertificateUploadModal from "@/components/certificate/CertificateUploadModal";
 import Empty from "@/components/Empty";
 import Show from "@/components/Show";
 import { CERTIFICATE_SOURCES, type CertificateModel } from "@/domain/certificate";
@@ -54,6 +55,8 @@ const CertificateList = () => {
   const [tableData, setTableData] = useState<CertificateModel[]>([]);
   const [tableTotal, setTableTotal] = useState<number>(0);
   const [tableSelectedRowKeys, setTableSelectedRowKeys] = useState<string[]>([]);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [editingCertificate, setEditingCertificate] = useState<CertificateModel>();
   const tableColumns: TableProps<CertificateModel>["columns"] = [
     {
       key: "name",
@@ -124,19 +127,21 @@ const CertificateList = () => {
         const workflowId = record.workflowRef;
         return (
           <div className="flex max-w-full flex-col gap-1 truncate">
-            <Typography.Text ellipsis>{t(`certificate.props.source.${record.source}`)}</Typography.Text>
-            <Typography.Link
-              ellipsis
-              type="secondary"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (workflowId) {
+            <Typography.Text ellipsis>
+              {t(`certificate.props.source.${record.source === CERTIFICATE_SOURCES.UPLOAD && !workflowId ? "manual" : record.source}`)}
+            </Typography.Text>
+            {workflowId && (
+              <Typography.Link
+                ellipsis
+                type="secondary"
+                onClick={(e) => {
+                  e.stopPropagation();
                   navigate(`/workflows/${workflowId}`);
-                }
-              }}
-            >
-              {record.expand?.workflowRef?.name ?? <span className="font-mono">{`#${workflowId}`}</span>}
-            </Typography.Link>
+                }}
+              >
+                {record.expand?.workflowRef?.name ?? <span className="font-mono">{`#${workflowId}`}</span>}
+              </Typography.Link>
+            )}
           </div>
         );
       },
@@ -168,6 +173,19 @@ const CertificateList = () => {
                 ),
                 onClick: () => {
                   handleRecordDetailClick(record);
+                },
+              },
+              {
+                key: "update",
+                label: t("certificate.action.update.menu"),
+                disabled: record.source !== CERTIFICATE_SOURCES.UPLOAD || !!record.workflowRef,
+                icon: (
+                  <span className="anticon scale-125">
+                    <IconEdit size="1em" />
+                  </span>
+                ),
+                onClick: () => {
+                  handleRecordUpdateClick(record);
                 },
               },
               {
@@ -327,6 +345,22 @@ const CertificateList = () => {
     });
   };
 
+  const handleRecordUpdateClick = async (certificate: CertificateModel) => {
+    try {
+      const data = await getCertificate(certificate.id);
+      setEditingCertificate(data);
+      setUploadModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      notification.error({ title: t("common.text.request_error"), description: unwrapErrMsg(err) });
+    }
+  };
+
+  const handleCreateUploadClick = () => {
+    setEditingCertificate(void 0);
+    setUploadModalOpen(true);
+  };
+
   const handleRecordRevokeClick = (certificate: CertificateModel) => {
     modal.confirm({
       title: <span className="text-error">{t("certificate.action.revoke.modal.title", { name: certificate.subjectAltNames })}</span>,
@@ -453,7 +487,11 @@ const CertificateList = () => {
               <Button icon={<IconReload size="1.25em" />} size="large" onClick={handleReloadClick} />
             </div>
           </div>
-          <div></div>
+          <div>
+            <Button icon={<IconUpload size="1.25em" />} size="large" type="primary" onClick={handleCreateUploadClick}>
+              {t("certificate.action.upload.button")}
+            </Button>
+          </div>
         </div>
 
         <div className="relative mt-4">
@@ -476,8 +514,8 @@ const CertificateList = () => {
                         {t("common.button.reload")}
                       </Button>
                     ) : (
-                      <Button icon={<IconExternalLink size="1.25em" />} type="primary" onClick={() => navigate("/workflows")}>
-                        {t("certificate.text.nodata_button")}
+                      <Button icon={<IconUpload size="1.25em" />} type="primary" onClick={handleCreateUploadClick}>
+                        {t("certificate.action.upload.button")}
                       </Button>
                     )
                   }
@@ -525,6 +563,7 @@ const CertificateList = () => {
         </div>
 
         <CertificateDetailDrawer {...detailDrawerProps} />
+        <CertificateUploadModal certificate={editingCertificate} open={uploadModalOpen} afterSubmit={() => refreshData()} onOpenChange={setUploadModalOpen} />
       </div>
     </div>
   );

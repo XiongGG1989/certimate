@@ -456,10 +456,22 @@
       }
     },
     "form": {
+      "certificate_source": {
+        "label": "证书来源",
+        "option": {
+          "node": "前序节点",
+          "manual": "证书库"
+        }
+      },
       "certificate_output_node_id": {
         "label": "待部署证书",
         "placeholder": "请选择待部署证书",
         "help": "提示：待部署证书来自之前的申请或上传节点，如果选项为空请先检查前序节点。"
+      },
+      "certificate_id": {
+        "label": "待部署证书",
+        "placeholder": "请选择已手动上传的证书",
+        "help": "证书按固定 ID 引用；在 SSL 证书页面更新内容后，无需重新配置工作流。"
       },
       "provider": {
         "label": "主机提供商",
@@ -1618,7 +1630,12 @@
       },
       "huaweicloud_cdn_domain": {
         "label": "华为云 CDN 加速域名",
-        "placeholder": "请输入华为云 CDN 加速域名"
+        "placeholder": "请输入华为云 CDN 加速域名",
+        "placeholder_multiple": "请输入加速域名，多个域名以逗号分隔",
+        "modal_title": "华为云 CDN 加速域名（最多 50 个）",
+        "errmsg": {
+          "invalid_multiple": "请输入 1 至 50 个有效的华为云 CDN 加速域名"
+        }
       },
       "huaweicloud_obs_region": {
         "label": "华为云服务区域",

@@ -82,7 +82,7 @@ Visit `http://127.0.0.1:8090` in your browser.
 
 Default administrator account:
 
-- Username: `admin@certimate.fun`
+- Username: `admin@admin.cn`
 - Password: `1234567890`
 
 Work with Certimate right now. Or read other content in the documentation to learn more.

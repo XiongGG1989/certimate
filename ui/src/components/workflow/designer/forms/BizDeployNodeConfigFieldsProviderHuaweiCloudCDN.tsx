@@ -4,6 +4,7 @@ import { createSchemaFieldRule } from "antd-zod";
 import { z } from "zod";
 
 import Show from "@/components/Show";
+import MultipleSplitValueInput from "@/components/MultipleSplitValueInput";
 import { isDomain } from "@/utils/validator";
 
 import { useFormNestedFieldsContext } from "./_context";
@@ -65,7 +66,20 @@ const BizDeployNodeConfigFieldsProviderHuaweiCloudCDN = () => {
           label={t("workflow_node.deploy.form.huaweicloud_cdn_domain.label")}
           rules={[formRule]}
         >
-          <Input placeholder={t("workflow_node.deploy.form.huaweicloud_cdn_domain.placeholder")} />
+          {fieldDomainMatchPattern === DOMAIN_MATCH_PATTERN_EXACT ? (
+            <MultipleSplitValueInput
+              maxCount={50}
+              minCount={1}
+              modalTitle={t("workflow_node.deploy.form.huaweicloud_cdn_domain.modal_title")}
+              placeholder={t("workflow_node.deploy.form.huaweicloud_cdn_domain.placeholder_multiple")}
+              placeholderInModal={t("workflow_node.deploy.form.huaweicloud_cdn_domain.placeholder")}
+              separator=","
+              showSortButton={false}
+              splitOptions={{ removeEmpty: true, trimSpace: true }}
+            />
+          ) : (
+            <Input placeholder={t("workflow_node.deploy.form.huaweicloud_cdn_domain.placeholder")} />
+          )}
         </Form.Item>
       </Show>
     </>
@@ -93,6 +107,21 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
       if (values.domainMatchPattern) {
         switch (values.domainMatchPattern) {
           case DOMAIN_MATCH_PATTERN_EXACT:
+            {
+              const domains = values.domain
+                ?.split(/[;,，\n\r]+/)
+                .map((domain) => domain.trim())
+                .filter(Boolean);
+              if (!domains?.length || domains.length > 50 || domains.some((domain) => !isDomain(domain, { allowWildcard: true }))) {
+                ctx.addIssue({
+                  code: "custom",
+                  message: t("workflow_node.deploy.form.huaweicloud_cdn_domain.errmsg.invalid_multiple"),
+                  path: ["domain"],
+                });
+              }
+            }
+            break;
+
           case DOMAIN_MATCH_PATTERN_WILDCARD:
             {
               const scDomain = z.string().refine((v) => isDomain(v, { allowWildcard: true }), t("common.errmsg.domain_invalid"));

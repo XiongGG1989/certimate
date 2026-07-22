@@ -149,8 +149,8 @@ func (d *Deployer) deployToCertificate(ctx context.Context, certPEM, privkeyPEM 
 		CertificateId:       d.config.CertificateId,
 		Body: &hwwafmodel.UpdateCertificateRequestBody{
 			Name:    *showCertificateResp.Name,
-			Content: lo.ToPtr(certPEM),
-			Key:     lo.ToPtr(privkeyPEM),
+			Content: lo.ToPtr(escapePEMNewlines(certPEM)),
+			Key:     lo.ToPtr(escapePEMNewlines(privkeyPEM)),
 		},
 	}
 	updateCertificateResp, err := d.sdkClient.UpdateCertificate(updateCertificateReq)
@@ -160,6 +160,12 @@ func (d *Deployer) deployToCertificate(ctx context.Context, certPEM, privkeyPEM 
 	}
 
 	return nil
+}
+
+func escapePEMNewlines(value string) string {
+	value = strings.ReplaceAll(value, "\r\n", "\n")
+	value = strings.ReplaceAll(value, "\r", "\n")
+	return strings.ReplaceAll(value, "\n", `\n`)
 }
 
 func (d *Deployer) deployToCloudServer(ctx context.Context, certPEM, privkeyPEM string) error {

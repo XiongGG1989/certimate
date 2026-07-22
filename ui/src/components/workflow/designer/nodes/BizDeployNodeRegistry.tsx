@@ -40,6 +40,7 @@ export const BizDeployNodeRegistry: NodeRegistry = {
       },
       ["config.certificateOutputNodeId"]: ({ value, context: { node } }) => {
         if (value == null) return;
+        if (node.form?.getValueIn("config.certificateSource") === "manual") return;
 
         const prevNodeIds = getAllPreviousNodes(node).map((e) => e.id);
         if (!prevNodeIds.includes(value)) {

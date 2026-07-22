@@ -2,7 +2,8 @@ import { useEffect, useMemo } from "react";
 import { getI18n, useTranslation } from "react-i18next";
 import { type FlowNodeEntity } from "@flowgram.ai/fixed-layout-editor";
 import { IconPlus } from "@tabler/icons-react";
-import { type AnchorProps, Button, Divider, Form, type FormInstance, Select, Switch, Typography, theme } from "antd";
+import { useRequest } from "ahooks";
+import { type AnchorProps, Button, Divider, Form, type FormInstance, Radio, Select, Switch, Typography, theme } from "antd";
 import { createSchemaFieldRule } from "antd-zod";
 import { z } from "zod";
 
@@ -12,10 +13,12 @@ import DeploymentProviderPicker from "@/components/provider/DeploymentProviderPi
 import DeploymentProviderSelect from "@/components/provider/DeploymentProviderSelect";
 import Show from "@/components/Show";
 import { type AccessModel } from "@/domain/access";
+import { type CertificateModel } from "@/domain/certificate";
 import { deploymentProvidersMap } from "@/domain/provider";
 import { type WorkflowNodeConfigForBizDeploy, defaultNodeConfigForBizDeploy } from "@/domain/workflow";
 import { useAntdForm, useZustandShallowSelector } from "@/hooks";
 import { useAccessesStore } from "@/stores/access";
+import { listManualUploads } from "@/repository/certificate";
 
 import { getAllPreviousNodes } from "../_util";
 import { FormNestedFieldsContextProvider, NodeFormContextProvider } from "./_context";
@@ -26,6 +29,9 @@ export interface BizDeployNodeConfigFormProps {
   form: FormInstance;
   node: FlowNodeEntity;
 }
+
+const CERTIFICATE_SOURCE_NODE = "node" as const;
+const CERTIFICATE_SOURCE_MANUAL = "manual" as const;
 
 const BizDeployNodeConfigForm = ({ node, ...props }: BizDeployNodeConfigFormProps) => {
   if (node.flowNodeType !== NodeType.BizDeploy) {
@@ -43,11 +49,16 @@ const BizDeployNodeConfigForm = ({ node, ...props }: BizDeployNodeConfigFormProp
   };
 
   const initialValues = useMemo(() => {
-    return node.form?.getValueIn("config") as WorkflowNodeConfigForBizDeploy | undefined;
+    const values = node.form?.getValueIn("config") as WorkflowNodeConfigForBizDeploy | undefined;
+    if (!values) return values;
+    return {
+      ...values,
+      certificateSource: values.certificateSource ?? (values.certificateId ? CERTIFICATE_SOURCE_MANUAL : CERTIFICATE_SOURCE_NODE),
+    };
   }, [node]);
 
   const formSchema = getSchema({ i18n }).superRefine((values, ctx) => {
-    if (values.certificateOutputNodeId) {
+    if (values.certificateSource === CERTIFICATE_SOURCE_NODE && values.certificateOutputNodeId) {
       if (!certificateOutputNodeIdOptions.some((option) => option.value === values.certificateOutputNodeId)) {
         ctx.addIssue({
           code: "custom",
@@ -65,6 +76,7 @@ const BizDeployNodeConfigForm = ({ node, ...props }: BizDeployNodeConfigFormProp
   });
 
   const fieldProvider = Form.useWatch("provider", { form: formInst, preserve: true });
+  const fieldCertificateSource = Form.useWatch("certificateSource", { form: formInst, preserve: true });
   const fieldProviderAccessId = Form.useWatch("providerAccessId", { form: formInst, preserve: true });
 
   const certificateOutputNodeIdOptions = useMemo(() => {
@@ -77,6 +89,25 @@ const BizDeployNodeConfigForm = ({ node, ...props }: BizDeployNodeConfigFormProp
         };
       });
   }, [node]);
+
+  const { data: manualCertificates = [], loading: manualCertificatesLoading } = useRequest(listManualUploads);
+  const manualCertificateOptions = useMemo(
+    () =>
+      manualCertificates.map((certificate) => ({
+        label: certificate.subjectAltNames.split(";").join("; "),
+        value: certificate.id,
+        certificate,
+      })),
+    [manualCertificates]
+  );
+
+  const handleCertificateSourceChange = (value: string) => {
+    if (value === CERTIFICATE_SOURCE_NODE) {
+      formInst.setFieldValue("certificateId", void 0);
+    } else {
+      formInst.setFieldValue("certificateOutputNodeId", void 0);
+    }
+  };
 
   const renderNestedFieldProviderComponent = BizDeployNodeConfigFieldsProvider.useComponent(fieldProvider, {});
 
@@ -139,27 +170,64 @@ const BizDeployNodeConfigForm = ({ node, ...props }: BizDeployNodeConfigFormProp
 
         <div style={{ display: fieldProvider ? "block" : "none" }}>
           <div id="parameters" data-anchor="parameters">
-            <Form.Item
-              name="certificateOutputNodeId"
-              label={t("workflow_node.deploy.form.certificate_output_node_id.label")}
-              extra={t("workflow_node.deploy.form.certificate_output_node_id.help")}
-              rules={[formRule]}
-            >
-              <Select
-                optionRender={({ label, value }) => {
-                  return (
-                    <div className="flex items-center justify-between gap-4 overflow-hidden">
-                      <div className="flex-1 truncate">{label}</div>
-                      <div className="origin-right scale-90 font-mono text-xs" style={{ color: themeToken.colorTextSecondary }}>
-                        (NodeID: {value})
-                      </div>
-                    </div>
-                  );
-                }}
-                options={certificateOutputNodeIdOptions}
-                placeholder={t("workflow_node.deploy.form.certificate_output_node_id.placeholder")}
-              />
+            <Form.Item name="certificateSource" label={t("workflow_node.deploy.form.certificate_source.label")} rules={[formRule]}>
+              <Radio.Group block onChange={(event) => handleCertificateSourceChange(event.target.value)}>
+                <Radio.Button value={CERTIFICATE_SOURCE_NODE}>{t("workflow_node.deploy.form.certificate_source.option.node")}</Radio.Button>
+                <Radio.Button value={CERTIFICATE_SOURCE_MANUAL}>{t("workflow_node.deploy.form.certificate_source.option.manual")}</Radio.Button>
+              </Radio.Group>
             </Form.Item>
+
+            {fieldCertificateSource === CERTIFICATE_SOURCE_NODE && (
+              <Form.Item
+                name="certificateOutputNodeId"
+                label={t("workflow_node.deploy.form.certificate_output_node_id.label")}
+                extra={t("workflow_node.deploy.form.certificate_output_node_id.help")}
+                rules={[formRule]}
+              >
+                <Select
+                  optionRender={({ label, value }) => {
+                    return (
+                      <div className="flex items-center justify-between gap-4 overflow-hidden">
+                        <div className="flex-1 truncate">{label}</div>
+                        <div className="origin-right scale-90 font-mono text-xs" style={{ color: themeToken.colorTextSecondary }}>
+                          (NodeID: {value})
+                        </div>
+                      </div>
+                    );
+                  }}
+                  options={certificateOutputNodeIdOptions}
+                  placeholder={t("workflow_node.deploy.form.certificate_output_node_id.placeholder")}
+                />
+              </Form.Item>
+            )}
+
+            {fieldCertificateSource === CERTIFICATE_SOURCE_MANUAL && (
+              <Form.Item
+                name="certificateId"
+                label={t("workflow_node.deploy.form.certificate_id.label")}
+                extra={t("workflow_node.deploy.form.certificate_id.help")}
+                rules={[formRule]}
+              >
+                <Select
+                  loading={manualCertificatesLoading}
+                  optionFilterProp="label"
+                  optionRender={({ data }) => {
+                    const certificate = data.certificate as CertificateModel;
+                    return (
+                      <div className="flex items-center justify-between gap-4 overflow-hidden">
+                        <div className="flex-1 truncate">{data.label}</div>
+                        <div className="origin-right scale-90 font-mono text-xs" style={{ color: themeToken.colorTextSecondary }}>
+                          #{certificate.id}
+                        </div>
+                      </div>
+                    );
+                  }}
+                  options={manualCertificateOptions}
+                  placeholder={t("workflow_node.deploy.form.certificate_id.placeholder")}
+                  showSearch
+                />
+              </Form.Item>
+            )}
           </div>
 
           <div id="deployment" data-anchor="deployment">
@@ -254,6 +322,7 @@ const getAnchorItems = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n
 const getInitialValues = (): Nullish<z.infer<ReturnType<typeof getSchema>>> => {
   return {
     ...(defaultNodeConfigForBizDeploy() as Nullish<z.infer<ReturnType<typeof getSchema>>>),
+    certificateSource: CERTIFICATE_SOURCE_NODE,
   };
 };
 
@@ -262,13 +331,29 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
 
   return z
     .object({
-      certificateOutputNodeId: z.string().nonempty(),
+      certificateSource: z.enum([CERTIFICATE_SOURCE_NODE, CERTIFICATE_SOURCE_MANUAL]).default(CERTIFICATE_SOURCE_NODE),
+      certificateOutputNodeId: z.string().nullish(),
+      certificateId: z.string().nullish(),
       provider: z.string().nonempty(),
       providerAccessId: z.string().nullish(),
       providerConfig: z.any().nullish(),
       skipOnLastSucceeded: z.boolean().nullish(),
     })
     .superRefine((values, ctx) => {
+      if (values.certificateSource === CERTIFICATE_SOURCE_NODE && !values.certificateOutputNodeId) {
+        ctx.addIssue({
+          code: "custom",
+          message: t("workflow_node.deploy.form.certificate_output_node_id.placeholder"),
+          path: ["certificateOutputNodeId"],
+        });
+      }
+      if (values.certificateSource === CERTIFICATE_SOURCE_MANUAL && !values.certificateId) {
+        ctx.addIssue({
+          code: "custom",
+          message: t("workflow_node.deploy.form.certificate_id.placeholder"),
+          path: ["certificateId"],
+        });
+      }
       if (values.provider) {
         const provider = deploymentProvidersMap.get(values.provider);
         if (!provider?.builtin && !values.providerAccessId) {

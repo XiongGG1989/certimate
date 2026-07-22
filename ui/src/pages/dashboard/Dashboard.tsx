@@ -7,7 +7,6 @@ import {
   IconBox,
   IconCertificate,
   IconCirclePlus,
-  IconConfetti,
   IconExternalLink,
   IconHexagonLetterX,
   IconHistory,
@@ -26,10 +25,9 @@ import { get as getStatistics } from "@/api/statistics";
 import Empty from "@/components/Empty";
 import WorkflowRunDetailDrawer from "@/components/workflow/WorkflowRunDetailDrawer";
 import WorkflowStatus from "@/components/workflow/WorkflowStatus";
-import { APP_DOWNLOAD_URL } from "@/domain/app";
 import { type Statistics } from "@/domain/statistics";
 import { type WorkflowRunModel } from "@/domain/workflowRun";
-import { useBrowserTheme, useVersionChecker } from "@/hooks";
+import { useBrowserTheme } from "@/hooks";
 import { get as getWorkflowRun, list as listWorkflowRuns } from "@/repository/workflowRun";
 import { mergeCls } from "@/utils/css";
 import { unwrapErrMsg } from "@/utils/error";
@@ -221,8 +219,6 @@ const Shortcuts = ({ className, style }: { className?: string; style?: React.CSS
 
   const { t } = useTranslation();
 
-  const { hasUpdate } = useVersionChecker();
-
   return (
     <div className={className} style={style}>
       <div className="flex items-center gap-4 not-md:flex-wrap">
@@ -253,17 +249,6 @@ const Shortcuts = ({ className, style }: { className?: string; style?: React.CSS
         >
           <span className="text-sm">{t("dashboard.shortcut.configure_ca")}</span>
         </Button>
-        {hasUpdate && (
-          <Button
-            className="shadow-sm"
-            icon={<IconConfetti className="animate-bounce" color="var(--color-error)" size="1.25em" />}
-            shape="round"
-            size="large"
-            onClick={() => window.open(APP_DOWNLOAD_URL, "_blank")}
-          >
-            <span className="text-sm">{t("dashboard.shortcut.upgrade")}</span>
-          </Button>
-        )}
       </div>
     </div>
   );

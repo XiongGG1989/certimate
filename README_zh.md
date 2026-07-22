@@ -82,7 +82,7 @@ docker run -d \
 
 初始的管理员账号及密码：
 
-- 账号：`admin@certimate.fun`
+- 账号：`admin@admin.cn`
 - 密码：`1234567890`
 
 即刻使用 Certimate。或者阅读文档中的其他内容以了解更多。

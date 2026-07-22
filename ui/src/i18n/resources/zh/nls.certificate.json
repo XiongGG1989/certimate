@@ -3,16 +3,33 @@
 
   "text": {
     "nodata": "暂无证书",
-    "nodata_description": "当前未找到证书。请先运行一个工作流。",
+    "nodata_description": "当前未找到证书。你可以手动上传证书，或运行一个工作流。",
     "nodata_button": "前往工作流"
   },
 
   "page": {
     "heading": "SSL 证书",
-    "subheading": "SSL 证书含有网站的公钥和网站标识以及其他相关信息。它们来自于工作流的运行输出。"
+    "subheading": "管理工作流生成或手动上传的 SSL 证书。手动上传的证书可在保持 ID 不变的情况下更新。"
   },
 
   "action": {
+    "upload.button": "上传证书",
+    "upload.modal": {
+      "title": "上传证书",
+      "form": {
+        "name": { "label": "证书名称" },
+        "certificate": {
+          "label": "证书内容（PEM）",
+          "errmsg": { "invalid": "请输入有效的 PEM 证书" }
+        },
+        "private_key": {
+          "label": "私钥内容（PEM）",
+          "errmsg": { "invalid": "请输入有效的 PEM 私钥" }
+        }
+      }
+    },
+    "update.menu": "更新证书",
+    "update.modal": { "title": "更新证书（ID 保持不变）" },
     "search.input": {
       "placeholder": "按证书名称或序列号搜索……"
     },
@@ -109,7 +126,8 @@
     "source": {
       "": "来源",
       "request": "申请",
-      "upload": "上传"
+      "upload": "工作流上传",
+      "manual": "手动上传"
     },
     "brand": "证书品牌",
     "revoked": "已吊销",

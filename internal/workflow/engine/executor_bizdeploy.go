@@ -42,9 +42,16 @@ func (ne *bizDeployNodeExecutor) Execute(execCtx *NodeExecutionContext) (*NodeEx
 		}
 	}
 
-	// 获取前序节点输出证书
+	// 获取证书库记录或前序节点输出证书
 	var inputCertificate *domain.Certificate
-	if inputState, ok := execCtx.inputs.Get(nodeCfg.CertificateOutputNodeId, "certificate"); ok {
+	if nodeCfg.CertificateId != "" {
+		certificate, err := ne.certificateRepo.GetById(execCtx.Context(), nodeCfg.CertificateId)
+		if err != nil {
+			ne.logger.Warn("could not get certificate from library")
+			return execRes, err
+		}
+		inputCertificate = certificate
+	} else if inputState, ok := execCtx.inputs.Get(nodeCfg.CertificateOutputNodeId, "certificate"); ok {
 		if inputStateValue, ok := inputState.Value.(string); ok {
 			s := strings.Split(inputStateValue, "#")
 			if len(s) == 2 {
@@ -63,7 +70,7 @@ func (ne *bizDeployNodeExecutor) Execute(execCtx *NodeExecutionContext) (*NodeEx
 	}
 
 	// 检测是否可以跳过本次执行
-	if lastOutput != nil && inputCertificate.CreatedAt.Before(lastOutput.UpdatedAt) {
+	if lastOutput != nil && inputCertificate.UpdatedAt.Before(lastOutput.UpdatedAt) {
 		if skippable, reason := ne.checkCanSkip(execCtx, lastOutput); skippable {
 			ne.logger.Info(fmt.Sprintf("skip this deployment, because %s", reason))
 
@@ -124,6 +131,12 @@ func (ne *bizDeployNodeExecutor) checkCanSkip(execCtx *NodeExecutionContext, las
 	if lastOutput != nil && lastOutput.Succeeded {
 		// 比较和上次部署时的关键配置（即影响证书部署的）参数是否一致
 		lastNodeCfg := lastOutput.NodeConfig.AsBizDeploy()
+		if thisNodeCfg.CertificateId != lastNodeCfg.CertificateId {
+			return false, "the configuration item 'CertificateId' changed"
+		}
+		if thisNodeCfg.CertificateOutputNodeId != lastNodeCfg.CertificateOutputNodeId {
+			return false, "the configuration item 'CertificateOutputNodeId' changed"
+		}
 
 		if thisNodeCfg.ProviderAccessId != lastNodeCfg.ProviderAccessId {
 			return false, "the configuration item 'ProviderAccessId' changed"

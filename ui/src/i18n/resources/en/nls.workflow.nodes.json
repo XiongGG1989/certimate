@@ -457,10 +457,22 @@
       }
     },
     "form": {
+      "certificate_source": {
+        "label": "Certificate source",
+        "option": {
+          "node": "Previous node",
+          "manual": "Certificate library"
+        }
+      },
       "certificate_output_node_id": {
         "label": "Certificate to deploy",
         "placeholder": "Please select certificate to deploy",
         "help": "Notes: The certificate to be deployed comes from the previous nodes of application or upload."
+      },
+      "certificate_id": {
+        "label": "Certificate to deploy",
+        "placeholder": "Select a manually uploaded certificate",
+        "help": "The workflow keeps a stable certificate ID. Updating its content does not require reconfiguring the workflow."
       },
       "provider": {
         "label": "Hosting provider",
@@ -1619,7 +1631,12 @@
       },
       "huaweicloud_cdn_domain": {
         "label": "Huawei Cloud CDN domain",
-        "placeholder": "Please enter Huawei Cloud CDN domain name"
+        "placeholder": "Please enter a Huawei Cloud CDN domain name",
+        "placeholder_multiple": "Enter CDN domains separated by commas",
+        "modal_title": "Huawei Cloud CDN domains (up to 50)",
+        "errmsg": {
+          "invalid_multiple": "Enter between 1 and 50 valid Huawei Cloud CDN domains"
+        }
       },
       "huaweicloud_obs_region": {
         "label": "Huawei Cloud region",

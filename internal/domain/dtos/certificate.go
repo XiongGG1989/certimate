@@ -23,3 +23,13 @@ type CertificateRevokeReq struct {
 }
 
 type CertificateRevokeResp struct{}
+
+type CertificateUploadReq struct {
+	CertificateId string `json:"-"`
+	Certificate   string `json:"certificate"`
+	PrivateKey    string `json:"privateKey"`
+}
+
+type CertificateUploadResp struct {
+	CertificateId string `json:"certificateId"`
+}

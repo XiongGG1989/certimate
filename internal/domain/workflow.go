@@ -191,6 +191,7 @@ func (c WorkflowNodeConfig) AsBizMonitor() WorkflowNodeConfigForBizMonitor {
 func (c WorkflowNodeConfig) AsBizDeploy() WorkflowNodeConfigForBizDeploy {
 	return WorkflowNodeConfigForBizDeploy{
 		CertificateOutputNodeId: xmaps.GetString(c, "certificateOutputNodeId"),
+		CertificateId:           xmaps.GetString(c, "certificateId"),
 		Provider:                xmaps.GetString(c, "provider"),
 		ProviderAccessId:        xmaps.GetString(c, "providerAccessId"),
 		ProviderConfig:          xmaps.GetKVMapAny(c, "providerConfig"),
@@ -260,6 +261,7 @@ type WorkflowNodeConfigForBizMonitor struct {
 
 type WorkflowNodeConfigForBizDeploy struct {
 	CertificateOutputNodeId string         `json:"certificateOutputNodeId"`    // 前序证书输出节点 ID
+	CertificateId           string         `json:"certificateId,omitempty"`    // 证书库中的证书记录 ID
 	Provider                string         `json:"provider"`                   // 主机提供商
 	ProviderAccessId        string         `json:"providerAccessId,omitempty"` // 主机提供商授权记录 ID
 	ProviderConfig          map[string]any `json:"providerConfig,omitempty"`   // 主机提供商额外配置
