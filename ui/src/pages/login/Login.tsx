@@ -6,7 +6,6 @@ import { App, Button, Card, Divider, Form, Input, Space } from "antd";
 import { createSchemaFieldRule } from "antd-zod";
 import { z } from "zod";
 
-import AppDocument from "@/components/AppDocument";
 import AppLocale from "@/components/AppLocale";
 import AppTheme from "@/components/AppTheme";
 import { useAntdForm, useBrowserTheme } from "@/hooks";
@@ -108,7 +107,6 @@ const Login = () => {
                   <Space align="center" separator={<Divider orientation="vertical" />} size={4}>
                     <AppLocale.LinkButton />
                     <AppTheme.LinkButton />
-                    <AppDocument.LinkButton />
                   </Space>
                 </div>
               </div>
@@ -117,7 +115,6 @@ const Login = () => {
                   <Space align="center" separator={<Divider orientation="vertical" />} size={4}>
                     <AppLocale.LinkButton />
                     <AppTheme.LinkButton />
-                    <AppDocument.LinkButton />
                   </Space>
                 </div>
               </div>
