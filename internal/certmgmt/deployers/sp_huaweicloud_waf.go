@@ -19,7 +19,8 @@ func init() {
 		provider, err := dplyimpl.NewDeployer(&dplyimpl.DeployerConfig{
 			AccessKeyId:         credentials.AccessKeyId,
 			SecretAccessKey:     credentials.SecretAccessKey,
-			EnterpriseProjectId: credentials.EnterpriseProjectId,
+			EnterpriseProjectId: xmaps.GetOrDefaultString(options.ProviderExtendedConfig, "enterpriseProjectId", credentials.EnterpriseProjectId),
+			ProjectId:           xmaps.GetString(options.ProviderExtendedConfig, "projectId"),
 			Region:              xmaps.GetString(options.ProviderExtendedConfig, "region"),
 			DeployTarget:        xmaps.GetString(options.ProviderExtendedConfig, "deployTarget"),
 			CertificateId:       xmaps.GetString(options.ProviderExtendedConfig, "certificateId"),

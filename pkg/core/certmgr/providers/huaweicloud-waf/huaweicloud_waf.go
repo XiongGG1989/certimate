@@ -34,6 +34,8 @@ type CertmgrConfig struct {
 	SecretAccessKey string `json:"secretAccessKey"`
 	// 华为云企业项目 ID。
 	EnterpriseProjectId string `json:"enterpriseProjectId,omitempty"`
+	// 华为云项目 ID。
+	ProjectId string `json:"projectId,omitempty"`
 	// 华为云区域。
 	Region string `json:"region"`
 }
@@ -51,7 +53,7 @@ func NewCertmgr(config *CertmgrConfig) (*Certmgr, error) {
 		return nil, fmt.Errorf("the configuration of the certmgr provider is nil")
 	}
 
-	client, err := createSDKClient(config.AccessKeyId, config.SecretAccessKey, config.Region)
+	client, err := createSDKClient(config.AccessKeyId, config.SecretAccessKey, config.ProjectId, config.Region)
 	if err != nil {
 		return nil, fmt.Errorf("could not create client: %w", err)
 	}
@@ -88,9 +90,11 @@ func (c *Certmgr) Upload(ctx context.Context, certPEM, privkeyPEM string) (*Uplo
 			EnterpriseProjectId: lo.EmptyableToPtr(c.config.EnterpriseProjectId),
 			Page:                lo.ToPtr(int32(listCertificatesPage)),
 			Pagesize:            lo.ToPtr(int32(listCertificatesPageSize)),
+			// ShowCertificate 只能查询 WAF 证书，不要在列表中混入 SCM 来源的证书。
+			QueryScm: lo.ToPtr(false),
 		}
 		listCertificatesResp, err := c.sdkClient.ListCertificates(listCertificatesReq)
-		c.logger.Debug("sdk request 'waf.ShowCertificate'", slog.Any("request", listCertificatesReq), slog.Any("response", listCertificatesResp))
+		c.logger.Debug("sdk request 'waf.ListCertificates'", slog.Any("request", listCertificatesReq), slog.Any("response", listCertificatesResp))
 		if err != nil {
 			return nil, fmt.Errorf("failed to execute sdk request 'waf.ListCertificates': %w", err)
 		}
@@ -156,10 +160,13 @@ func (c *Certmgr) Replace(ctx context.Context, certIdOrName string, certPEM, pri
 	return nil, core.ErrUnsupported
 }
 
-func createSDKClient(accessKeyId, secretAccessKey, region string) (*hwwaf.WafClient, error) {
-	projectId, err := getSDKProjectId(accessKeyId, secretAccessKey, region)
-	if err != nil {
-		return nil, err
+func createSDKClient(accessKeyId, secretAccessKey, projectId, region string) (*hwwaf.WafClient, error) {
+	if projectId == "" {
+		var err error
+		projectId, err = getSDKProjectId(accessKeyId, secretAccessKey, region)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	auth, err := basic.NewCredentialsBuilder().

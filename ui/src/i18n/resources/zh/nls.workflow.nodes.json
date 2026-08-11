@@ -1706,6 +1706,16 @@
         "placeholder": "请输入华为云 WAF 服务区域（例如：cn-north-1）",
         "tooltip": "这是什么？请参阅 <a href=\"https://console.huaweicloud.com/apiexplorer/#/endpoint/waf\" target=\"_blank\">https://console.huaweicloud.com/apiexplorer/#/endpoint/waf</a>"
       },
+      "huaweicloud_waf_enterprise_project_id": {
+        "label": "华为云企业项目 ID（可选）",
+        "placeholder": "请输入 WAF 资源所属的企业项目 ID（默认为 0）",
+        "tooltip": "非默认企业项目中的 WAF 资源必须填写对应的企业项目 ID。默认企业项目可留空或填写 0。"
+      },
+      "huaweicloud_waf_project_id": {
+        "label": "华为云项目 ID（可选）",
+        "placeholder": "请输入 WAF 资源所属区域的项目 ID",
+        "tooltip": "ShowCertificate 请求 URI 中的 project_id。留空时将根据服务区域通过 IAM 自动查询。"
+      },
       "huaweicloud_waf_deploy_target": {
         "option": {
           "cloudserver": {

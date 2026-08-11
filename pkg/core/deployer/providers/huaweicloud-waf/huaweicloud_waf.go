@@ -33,6 +33,8 @@ type DeployerConfig struct {
 	SecretAccessKey string `json:"secretAccessKey"`
 	// 华为云企业项目 ID。
 	EnterpriseProjectId string `json:"enterpriseProjectId,omitempty"`
+	// 华为云项目 ID。
+	ProjectId string `json:"projectId,omitempty"`
 	// 华为云区域。
 	Region string `json:"region"`
 	// 部署目标。
@@ -59,7 +61,7 @@ func NewDeployer(config *DeployerConfig) (*Deployer, error) {
 		return nil, fmt.Errorf("the configuration of the deployer provider is nil")
 	}
 
-	client, err := createSDKClient(config.AccessKeyId, config.SecretAccessKey, config.Region)
+	client, err := createSDKClient(config.AccessKeyId, config.SecretAccessKey, config.ProjectId, config.Region)
 	if err != nil {
 		return nil, fmt.Errorf("could not create client: %w", err)
 	}
@@ -68,6 +70,7 @@ func NewDeployer(config *DeployerConfig) (*Deployer, error) {
 		AccessKeyId:         config.AccessKeyId,
 		SecretAccessKey:     config.SecretAccessKey,
 		EnterpriseProjectId: config.EnterpriseProjectId,
+		ProjectId:           config.ProjectId,
 		Region:              config.Region,
 	})
 	if err != nil {
@@ -93,14 +96,6 @@ func (d *Deployer) SetLogger(logger *slog.Logger) {
 }
 
 func (d *Deployer) Deploy(ctx context.Context, certPEM, privkeyPEM string) (*DeployResult, error) {
-	// 上传证书
-	upres, err := d.sdkCertmgr.Upload(ctx, certPEM, privkeyPEM)
-	if err != nil {
-		return nil, fmt.Errorf("failed to upload certificate file: %w", err)
-	} else {
-		d.logger.Info("ssl certificate uploaded", slog.Any("result", upres))
-	}
-
 	// 根据部署目标决定业务流程
 	switch d.config.DeployTarget {
 	case DEPLOY_TARGET_CLOUDSERVER:
@@ -149,8 +144,8 @@ func (d *Deployer) deployToCertificate(ctx context.Context, certPEM, privkeyPEM 
 		CertificateId:       d.config.CertificateId,
 		Body: &hwwafmodel.UpdateCertificateRequestBody{
 			Name:    *showCertificateResp.Name,
-			Content: lo.ToPtr(escapePEMNewlines(certPEM)),
-			Key:     lo.ToPtr(escapePEMNewlines(privkeyPEM)),
+			Content: lo.ToPtr(normalizePEMNewlines(certPEM)),
+			Key:     lo.ToPtr(normalizePEMNewlines(privkeyPEM)),
 		},
 	}
 	updateCertificateResp, err := d.sdkClient.UpdateCertificate(updateCertificateReq)
@@ -162,10 +157,9 @@ func (d *Deployer) deployToCertificate(ctx context.Context, certPEM, privkeyPEM 
 	return nil
 }
 
-func escapePEMNewlines(value string) string {
+func normalizePEMNewlines(value string) string {
 	value = strings.ReplaceAll(value, "\r\n", "\n")
-	value = strings.ReplaceAll(value, "\r", "\n")
-	return strings.ReplaceAll(value, "\n", `\n`)
+	return strings.ReplaceAll(value, "\r", "\n")
 }
 
 func (d *Deployer) deployToCloudServer(ctx context.Context, certPEM, privkeyPEM string) error {
@@ -322,10 +316,13 @@ func (d *Deployer) deployToPremiumHost(ctx context.Context, certPEM, privkeyPEM 
 	return nil
 }
 
-func createSDKClient(accessKeyId, secretAccessKey, region string) (*hwwaf.WafClient, error) {
-	projectId, err := getSDKProjectId(accessKeyId, secretAccessKey, region)
-	if err != nil {
-		return nil, err
+func createSDKClient(accessKeyId, secretAccessKey, projectId, region string) (*hwwaf.WafClient, error) {
+	if projectId == "" {
+		var err error
+		projectId, err = getSDKProjectId(accessKeyId, secretAccessKey, region)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	auth, err := basic.NewCredentialsBuilder().

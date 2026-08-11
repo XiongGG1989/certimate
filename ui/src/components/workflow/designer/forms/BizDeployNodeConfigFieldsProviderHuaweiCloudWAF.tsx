@@ -38,6 +38,26 @@ const BizDeployNodeConfigFieldsProviderHuaweiCloudWAF = () => {
       </Form.Item>
 
       <Form.Item
+        name={[parentNamePath, "projectId"]}
+        initialValue={initialValues.projectId}
+        label={t("workflow_node.deploy.form.huaweicloud_waf_project_id.label")}
+        rules={[formRule]}
+        tooltip={<span dangerouslySetInnerHTML={{ __html: t("workflow_node.deploy.form.huaweicloud_waf_project_id.tooltip") }}></span>}
+      >
+        <Input allowClear placeholder={t("workflow_node.deploy.form.huaweicloud_waf_project_id.placeholder")} />
+      </Form.Item>
+
+      <Form.Item
+        name={[parentNamePath, "enterpriseProjectId"]}
+        initialValue={initialValues.enterpriseProjectId}
+        label={t("workflow_node.deploy.form.huaweicloud_waf_enterprise_project_id.label")}
+        rules={[formRule]}
+        tooltip={<span dangerouslySetInnerHTML={{ __html: t("workflow_node.deploy.form.huaweicloud_waf_enterprise_project_id.tooltip") }}></span>}
+      >
+        <Input allowClear placeholder={t("workflow_node.deploy.form.huaweicloud_waf_enterprise_project_id.placeholder")} />
+      </Form.Item>
+
+      <Form.Item
         name={[parentNamePath, "deployTarget"]}
         initialValue={initialValues.deployTarget}
         label={t("workflow_node.deploy.form.shared_deploy_target.label")}
@@ -90,6 +110,8 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
   return z
     .object({
       region: z.string().nonempty(),
+      projectId: z.string().nullish(),
+      enterpriseProjectId: z.string().nullish(),
       deployTarget: z.enum([DEPLOY_TARGET_CLOUDSERVER, DEPLOY_TARGET_PREMIUMHOST, DEPLOY_TARGET_CERTIFICATE]),
       certificateId: z.string().nullish(),
       domain: z.string().nullish(),

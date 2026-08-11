@@ -1707,6 +1707,16 @@
         "placeholder": "Please enter Huawei Cloud WAF region (e.g. cn-north-1)",
         "tooltip": "For more information, see <a href=\"https://console-intl.huaweicloud.com/apiexplorer/#/endpoint/waf?locale=en-us\" target=\"_blank\">https://console-intl.huaweicloud.com/apiexplorer/#/endpoint/waf</a>"
       },
+      "huaweicloud_waf_enterprise_project_id": {
+        "label": "Huawei Cloud enterprise project ID (Optional)",
+        "placeholder": "Enter the enterprise project ID of the WAF resource (defaults to 0)",
+        "tooltip": "Enter the enterprise project ID for WAF resources outside the default enterprise project. Leave it empty or enter 0 for the default enterprise project."
+      },
+      "huaweicloud_waf_project_id": {
+        "label": "Huawei Cloud project ID (Optional)",
+        "placeholder": "Enter the project ID of the region containing the WAF resource",
+        "tooltip": "The project_id path parameter of ShowCertificate. When empty, it is queried automatically from IAM using the selected region."
+      },
       "huaweicloud_waf_deploy_target": {
         "option": {
           "cloudserver": {

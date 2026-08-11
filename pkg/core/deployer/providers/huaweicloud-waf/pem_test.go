@@ -2,7 +2,7 @@ package huaweicloudwaf
 
 import "testing"
 
-func TestEscapePEMNewlines(t *testing.T) {
+func TestNormalizePEMNewlines(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
@@ -11,17 +11,17 @@ func TestEscapePEMNewlines(t *testing.T) {
 		{
 			name:  "LF",
 			input: "-----BEGIN PRIVATE KEY-----\nkey-data\n-----END PRIVATE KEY-----\n",
-			want:  `-----BEGIN PRIVATE KEY-----\nkey-data\n-----END PRIVATE KEY-----\n`,
+			want:  "-----BEGIN PRIVATE KEY-----\nkey-data\n-----END PRIVATE KEY-----\n",
 		},
 		{
 			name:  "CRLF",
 			input: "-----BEGIN CERTIFICATE-----\r\ncert-data\r\n-----END CERTIFICATE-----\r\n",
-			want:  `-----BEGIN CERTIFICATE-----\ncert-data\n-----END CERTIFICATE-----\n`,
+			want:  "-----BEGIN CERTIFICATE-----\ncert-data\n-----END CERTIFICATE-----\n",
 		},
 		{
 			name:  "CR",
 			input: "line-1\rline-2",
-			want:  `line-1\nline-2`,
+			want:  "line-1\nline-2",
 		},
 		{
 			name:  "NoNewlines",
@@ -32,8 +32,8 @@ func TestEscapePEMNewlines(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := escapePEMNewlines(tt.input); got != tt.want {
-				t.Fatalf("escapePEMNewlines() = %q, want %q", got, tt.want)
+			if got := normalizePEMNewlines(tt.input); got != tt.want {
+				t.Fatalf("normalizePEMNewlines() = %q, want %q", got, tt.want)
 			}
 		})
 	}
