@@ -2,9 +2,7 @@ import { useTranslation } from "react-i18next";
 import { IconBrandGithub, IconHeartHandshake } from "@tabler/icons-react";
 import { Button, Divider, Typography } from "antd";
 
-import { APP_REPO_URL } from "@/domain/app";
-
-const APP_VERSION = "v0.4.27";
+import { APP_REPO_URL, APP_VERSION } from "@/domain/app";
 
 const SettingsAbout = () => {
   const { t } = useTranslation();

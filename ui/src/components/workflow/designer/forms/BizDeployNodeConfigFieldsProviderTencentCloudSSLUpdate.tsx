@@ -10,7 +10,11 @@ import { useFormNestedFieldsContext } from "./_context";
 
 const MULTIPLE_INPUT_SEPARATOR = ";";
 
-const BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdate = () => {
+interface BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdateProps {
+  oneClickOnly?: boolean;
+}
+
+const BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdate = ({ oneClickOnly = false }: BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdateProps) => {
   const { i18n, t } = useTranslation();
 
   const { parentNamePath } = useFormNestedFieldsContext();
@@ -23,7 +27,17 @@ const BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdate = () => {
   return (
     <>
       <Form.Item>
-        <Tips message={<span dangerouslySetInnerHTML={{ __html: t("workflow_node.deploy.form.tencentcloud_sslupdate.guide") }}></span>} />
+        <Tips
+          message={
+            <span
+              dangerouslySetInnerHTML={{
+                __html: t(
+                  oneClickOnly ? "workflow_node.deploy.form.tencentcloud_ssloneclickupdate.guide" : "workflow_node.deploy.form.tencentcloud_sslupdate.guide"
+                ),
+              }}
+            ></span>
+          }
+        />
       </Form.Item>
 
       <Form.Item
@@ -67,7 +81,11 @@ const BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdate = () => {
         name={[parentNamePath, "resourceProducts"]}
         initialValue={initialValues.resourceProducts}
         label={t("workflow_node.deploy.form.tencentcloud_sslupdate_resource_products.label")}
-        extra={t("workflow_node.deploy.form.tencentcloud_sslupdate_resource_products.help")}
+        extra={t(
+          oneClickOnly
+            ? "workflow_node.deploy.form.tencentcloud_ssloneclickupdate_resource_products.help"
+            : "workflow_node.deploy.form.tencentcloud_sslupdate_resource_products.help"
+        )}
         rules={[formRule]}
         tooltip={<span dangerouslySetInnerHTML={{ __html: t("workflow_node.deploy.form.tencentcloud_sslupdate_resource_products.tooltip") }}></span>}
       >
@@ -80,27 +98,29 @@ const BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdate = () => {
         />
       </Form.Item>
 
-      <Form.Item
-        name={[parentNamePath, "isReplaced"]}
-        initialValue={initialValues.isReplaced}
-        label={t("workflow_node.deploy.form.tencentcloud_sslupdate_is_replaced.label")}
-        rules={[formRule]}
-        tooltip={<span dangerouslySetInnerHTML={{ __html: t("workflow_node.deploy.form.tencentcloud_sslupdate_is_replaced.tooltip") }}></span>}
-      >
-        <Switch />
-      </Form.Item>
+      {!oneClickOnly && (
+        <Form.Item
+          name={[parentNamePath, "isReplaced"]}
+          initialValue={initialValues.isReplaced}
+          label={t("workflow_node.deploy.form.tencentcloud_sslupdate_is_replaced.label")}
+          rules={[formRule]}
+          tooltip={<span dangerouslySetInnerHTML={{ __html: t("workflow_node.deploy.form.tencentcloud_sslupdate_is_replaced.tooltip") }}></span>}
+        >
+          <Switch />
+        </Form.Item>
+      )}
     </>
   );
 };
 
-const getInitialValues = (): Nullish<z.infer<ReturnType<typeof getSchema>>> => {
+export const getInitialValues = (): Nullish<z.infer<ReturnType<typeof getSchema>>> => {
   return {
     certificateId: "",
     resourceProducts: "",
   };
 };
 
-const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) => {
+export const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) => {
   const { t } = i18n;
 
   return z.object({

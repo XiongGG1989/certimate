@@ -369,8 +369,16 @@
           },
           "url": {
             "label": "URL 路径"
+          },
+          "library": {
+            "label": "证书库"
           }
         }
+      },
+      "certificate_id": {
+        "label": "证书库证书",
+        "placeholder": "请选择已手动上传的证书",
+        "help": "从证书库选择证书，并将其作为本节点的输出提供给后续部署节点。"
       },
       "name": {
         "label": "证书名称",
@@ -2474,6 +2482,12 @@
       "tencentcloud_sslupdate": {
         "guide": "将通过腾讯云 OpenAPI <em>UpdateCertificateInstance</em> 或 <em>UploadUpdateCertificateInstance</em> 接口创建异步部署任务。"
       },
+      "tencentcloud_ssloneclickupdate": {
+        "guide": "将通过腾讯云 OpenAPI <em>UpdateCertificateInstance</em> 接口上传新证书，并一键更新旧证书关联的云资源。首次运行请填写当前旧证书 ID；部署成功后会自动保存新证书 ID，后续运行无需手工修改。"
+      },
+      "tencentcloud_ssloneclickupdate_resource_products": {
+        "help": "提示：支持多个类型，以半角分号隔开。支持 clb、cdn、waf、live、ddos、teo、apigateway、vod、tke、tcb、tse、cos、mqtt、scf、tdmq、gaap。"
+      },
       "tencentcloud_sslupdate_endpoint": {
         "label": "腾讯云接口端点（可选）",
         "placeholder": "请输入腾讯云 SSL 接口端点（例如：ssl.tencentcloudapi.com）",
@@ -2490,7 +2504,7 @@
         "errmsg": {
           "invalid": "无效的云产品部署地域"
         },
-        "help": "提示：支持多个地域，以半角分号隔开。",
+        "help": "提示：支持多个地域，以半角分号隔开。CLB、TKE、API Gateway、WAF、TCB、TSE、COS、MQTT、SCF、TDMQ 必填。",
         "tooltip": "这是什么？请参阅 <a href=\"https://cloud.tencent.com/document/product/400/91649\" target=\"_blank\">https://cloud.tencent.com/document/product/400/91649</a> 或 <a href=\"https://cloud.tencent.com/document/product/400/119791\" target=\"_blank\">https://cloud.tencent.com/document/product/400/119791</a>",
         "multiple_input_modal": {
           "title": "修改腾讯云云产品部署地域",
@@ -2503,7 +2517,7 @@
         "errmsg": {
           "invalid": "无效的云产品资源类型"
         },
-        "help": "提示：支持多个类型，以半角分号隔开。",
+        "help": "提示：支持多个类型，以半角分号隔开。更新为新证书 ID 时支持 clb、cdn、waf、live、ddos、teo、apigateway、vod、tke、tcb、tse、cos、mqtt、scf、tdmq、gaap；保持证书 ID 不变时仅支持 clb。",
         "tooltip": "这是什么？请参阅 <a href=\"https://cloud.tencent.com/document/product/400/91649\" target=\"_blank\">https://cloud.tencent.com/document/product/400/91649</a> 或 <a href=\"https://cloud.tencent.com/document/product/400/119791\" target=\"_blank\">https://cloud.tencent.com/document/product/400/119791</a><br>注意，这两个接口的所支持的云产品资源类型有所不同，具体请查看腾讯云官方文档。",
         "multiple_input_modal": {
           "title": "修改腾讯云云产品资源类型",

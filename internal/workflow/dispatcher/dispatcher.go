@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -241,17 +242,51 @@ func (wd *workflowDispatcher) tryExecuteAsync(task *taskInfo) {
 
 	// 初始化工作流引擎
 	logsBuf := make(domain.WorkflowLogs, 0)
+	providerConfigUpdates := make(map[string]providerConfigUpdate)
+	var providerConfigUpdatesMtx sync.Mutex
 	we := engine.NewWorkflowEngine()
 	we.OnEnd(func(ctx context.Context) error {
 		if errmsg := logsBuf.ErrorString(); errmsg == "" {
 			workflowRun.Status = domain.WorkflowRunStatusTypeSucceeded
 			workflowRun.EndedAt = time.Now()
+
+			providerConfigUpdatesMtx.Lock()
+			if err := wd.syncProviderConfigUpdates(ctx, workflow.Id, providerConfigUpdates); err != nil {
+				wd.syslog.Error("failed to sync deployment provider configuration", slog.Any("error", err))
+			}
+			providerConfigUpdatesMtx.Unlock()
 		} else {
 			workflowRun.Status = domain.WorkflowRunStatusTypeFailed
 			workflowRun.EndedAt = time.Now()
 			workflowRun.Error = errmsg
 		}
 		wd.workflowRunRepo.SaveWithCascading(task.ctx, workflowRun)
+
+		return nil
+	})
+	we.OnNodeEnd(func(ctx context.Context, node *engine.Node, result *engine.NodeExecutionResult) error {
+		if node.Type != engine.NodeTypeBizDeploy || result == nil {
+			return nil
+		}
+
+		values := make(map[string]any)
+		for _, output := range result.Outputs {
+			if !output.Persistent || !strings.HasPrefix(output.Name, providerConfigOutputPrefix) {
+				continue
+			}
+			key := strings.TrimPrefix(output.Name, providerConfigOutputPrefix)
+			if key != "" {
+				values[key] = output.ValueString()
+			}
+		}
+		if len(values) > 0 {
+			providerConfigUpdatesMtx.Lock()
+			providerConfigUpdates[node.Id] = providerConfigUpdate{
+				Provider: node.Data.Config.AsBizDeploy().Provider,
+				Values:   values,
+			}
+			providerConfigUpdatesMtx.Unlock()
+		}
 
 		return nil
 	})
