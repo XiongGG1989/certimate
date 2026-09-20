@@ -52,6 +52,7 @@ export default defineConfig(({ command }) => {
   }
 
   return {
+    base: "./",
     define: {
       __APP_VERSION__: JSON.stringify(appVersion),
     },
