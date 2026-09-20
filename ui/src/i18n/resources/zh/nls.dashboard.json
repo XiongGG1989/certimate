@@ -9,12 +9,12 @@
     "all_certificates": "所有证书",
     "expiring_soon_certificates": "即将过期证书",
     "expired_certificates": "已过期证书",
-    "all_workflows": "所有工作流",
-    "enabled_workflows": "已启用工作流"
+    "all_workflows": "所有工作流"
   },
 
   "shortcut": {
     "": "快捷操作",
+    "upload_certificate": "上传 SSL 证书",
     "create_workflow": "创建新的工作流",
     "change_account": "修改登录账号密码",
     "configure_ca": "配置证书颁发机构",

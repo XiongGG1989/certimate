@@ -10,6 +10,7 @@ import (
 	"github.com/samber/lo"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
+	tcsslmodel "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/ssl/v20191205"
 
 	tcssl "github.com/certimate-go/certimate/pkg/sdk3rd-trimmed/github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/ssl/v20191205"
 
@@ -21,6 +22,22 @@ import (
 type (
 	Provider     = core.Deployer
 	DeployResult = core.DeployerDeployResult
+)
+
+var (
+	// UpdateCertificateInstance 支持的资源类型。
+	// REF: https://cloud.tencent.com/document/product/400/91649
+	updateCertificateResourceProducts = []string{
+		"apigateway", "cdn", "clb", "cos", "ddos", "gaap", "live", "mqtt",
+		"scf", "tcb", "tdmq", "teo", "tke", "tse", "vod", "waf",
+	}
+	// UploadUpdateCertificateInstance 当前仅支持 CLB。
+	// REF: https://cloud.tencent.com/document/product/400/119791
+	uploadUpdateCertificateResourceProducts = []string{"clb"}
+	// 这些资源类型调用更新接口时必须同时指定地域。
+	resourceProductsRequireRegion = []string{
+		"apigateway", "clb", "cos", "mqtt", "scf", "tcb", "tdmq", "tke", "tse", "waf",
+	}
 )
 
 type DeployerConfig struct {
@@ -40,6 +57,8 @@ type DeployerConfig struct {
 	ResourceProducts []string `json:"resourceProducts"`
 	// 是否替换原有证书（即保持原证书 ID 不变）。
 	IsReplaced bool `json:"isReplaced,omitempty"`
+	// 是否直接通过一键更新接口上传新证书内容。
+	UseCertificateContent bool `json:"useCertificateContent,omitempty"`
 }
 
 type Deployer struct {
@@ -96,59 +115,73 @@ func (d *Deployer) Deploy(ctx context.Context, certPEM, privkeyPEM string) (*Dep
 	if len(d.config.ResourceProducts) == 0 {
 		return nil, fmt.Errorf("config `resourceProducts` is required")
 	}
+	if err := validateResourceProducts(d.config.ResourceProducts, d.config.ResourceRegions, d.config.IsReplaced); err != nil {
+		return nil, err
+	}
 
 	if d.config.IsReplaced {
 		if err := d.executeUploadUpdateCertificateInstance(ctx, certPEM, privkeyPEM); err != nil {
 			return nil, err
 		}
 	} else {
-		if err := d.executeUpdateCertificateInstance(ctx, certPEM, privkeyPEM); err != nil {
+		newCertificateId, err := d.executeUpdateCertificateInstance(ctx, certPEM, privkeyPEM)
+		if err != nil {
 			return nil, err
+		}
+		if d.config.UseCertificateContent {
+			return &DeployResult{ExtendedData: map[string]any{
+				"providerConfig.certificateId": newCertificateId,
+			}}, nil
 		}
 	}
 
 	return &DeployResult{}, nil
 }
 
-func (d *Deployer) executeUpdateCertificateInstance(ctx context.Context, certPEM, privkeyPEM string) error {
-	// 上传证书
-	upres, err := d.sdkCertmgr.Upload(ctx, certPEM, privkeyPEM)
-	if err != nil {
-		return fmt.Errorf("failed to upload certificate file: %w", err)
-	} else {
-		d.logger.Info("ssl certificate uploaded", slog.Any("result", upres))
+func (d *Deployer) executeUpdateCertificateInstance(ctx context.Context, certPEM, privkeyPEM string) (string, error) {
+	var certificateId string
+	if !d.config.UseCertificateContent {
+		// 兼容原有部署选项：先上传证书，再使用新证书 ID 更新旧证书资源。
+		upres, err := d.sdkCertmgr.Upload(ctx, certPEM, privkeyPEM)
+		if err != nil {
+			return "", fmt.Errorf("failed to upload certificate file: %w", err)
+		} else {
+			d.logger.Info("ssl certificate uploaded", slog.Any("result", upres))
+			certificateId = upres.CertId
+		}
 	}
 
 	// 一键更新新旧证书资源
 	// REF: https://cloud.tencent.com/document/product/400/91649
 	var deployRecordId string
 	if _, err := xwait.UntilWithContext(ctx, func(_ context.Context, _ int) (bool, error) {
-		updateCertificateInstanceReq := tcssl.NewUpdateCertificateInstanceRequest()
-		updateCertificateInstanceReq.ProjectId = lo.EmptyableToPtr(uint64(d.config.ProjectId))
-		updateCertificateInstanceReq.OldCertificateId = common.StringPtr(d.config.CertificateId)
-		updateCertificateInstanceReq.CertificateId = common.StringPtr(upres.CertId)
-		updateCertificateInstanceReq.ResourceTypes = common.StringPtrs(d.config.ResourceProducts)
-		updateCertificateInstanceReq.ResourceTypesRegions = wrapResourceProductRegions(d.config.ResourceProducts, d.config.ResourceRegions)
+		updateCertificateInstanceReq := d.newUpdateCertificateInstanceRequest(certPEM, privkeyPEM, certificateId)
 		updateCertificateInstanceResp, err := d.sdkClient.UpdateCertificateInstanceWithContext(ctx, updateCertificateInstanceReq)
-		d.logger.Debug("sdk request 'ssl.UpdateCertificateInstance'", slog.Any("request", updateCertificateInstanceReq), slog.Any("response", updateCertificateInstanceResp))
+		d.logger.Debug("sdk request 'ssl.UpdateCertificateInstance'", slog.String("oldCertificateId", d.config.CertificateId), slog.Any("resourceProducts", d.config.ResourceProducts), slog.Any("response", updateCertificateInstanceResp))
 		if err != nil {
 			return false, fmt.Errorf("failed to execute sdk request 'ssl.UpdateCertificateInstance': %w", err)
 		}
 
-		if updateCertificateInstanceResp.Response.DeployStatus == nil || updateCertificateInstanceResp.Response.DeployRecordId == nil {
+		if updateCertificateInstanceResp == nil || updateCertificateInstanceResp.Response == nil {
 			return false, fmt.Errorf("unexpected deployment job status")
-		} else if *updateCertificateInstanceResp.Response.DeployRecordId > 0 {
-			deployRecordId = fmt.Sprintf("%d", *updateCertificateInstanceResp.Response.DeployRecordId)
+		}
+
+		recordId, ready, err := resolveDeployRecordId(updateCertificateInstanceResp.Response.DeployStatus, updateCertificateInstanceResp.Response.DeployRecordId)
+		if err != nil {
+			return false, err
+		} else if ready {
+			deployRecordId = fmt.Sprintf("%d", recordId)
 			return true, nil
 		}
 
 		return false, nil
 	}, 10*time.Second); err != nil {
-		return err
+		return "", err
 	}
 
 	// 查询证书云资源更新记录详情，等待任务状态变更
 	// REF: https://cloud.tencent.com/document/api/400/91652
+	var newCertificateId string
 	if _, err := xwait.UntilWithContext(ctx, func(_ context.Context, _ int) (bool, error) {
 		describeHostUpdateRecordDetailReq := tcssl.NewDescribeHostUpdateRecordDetailRequest()
 		describeHostUpdateRecordDetailReq.DeployRecordId = common.StringPtr(deployRecordId)
@@ -160,9 +193,10 @@ func (d *Deployer) executeUpdateCertificateInstance(ctx context.Context, certPEM
 		}
 
 		var pendingCount, runningCount, succeededCount, failedCount, totalCount int64
-		if describeHostUpdateRecordDetailResp.Response.TotalCount == nil {
+		if describeHostUpdateRecordDetailResp == nil || describeHostUpdateRecordDetailResp.Response == nil || describeHostUpdateRecordDetailResp.Response.TotalCount == nil {
 			return false, fmt.Errorf("unexpected deployment job status")
 		} else {
+			newCertificateId = resolveNewCertificateId(describeHostUpdateRecordDetailResp.Response.RecordDetailList)
 			pendingCount = lo.FromPtr(describeHostUpdateRecordDetailResp.Response.PendingTotalCount)
 			runningCount = lo.FromPtr(describeHostUpdateRecordDetailResp.Response.RunningTotalCount)
 			succeededCount = lo.FromPtr(describeHostUpdateRecordDetailResp.Response.SuccessTotalCount)
@@ -173,6 +207,9 @@ func (d *Deployer) executeUpdateCertificateInstance(ctx context.Context, certPEM
 				if failedCount > 0 {
 					return false, fmt.Errorf("unexpected deployment deployment job status (succeeded: %d, failed: %d, total: %d)", succeededCount, failedCount, totalCount)
 				}
+				if d.config.UseCertificateContent && newCertificateId == "" {
+					return false, fmt.Errorf("deployment completed but the new certificate ID was not returned")
+				}
 				return true, nil
 			}
 		}
@@ -180,10 +217,32 @@ func (d *Deployer) executeUpdateCertificateInstance(ctx context.Context, certPEM
 		d.logger.Info(fmt.Sprintf("waiting for deployment job completion (pending: %d, running: %d, succeeded: %d, failed: %d, total: %d) ...", pendingCount, runningCount, succeededCount, failedCount, totalCount))
 		return false, nil
 	}, 10*time.Second); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	if newCertificateId != "" {
+		return newCertificateId, nil
+	}
+	return certificateId, nil
+}
+
+func (d *Deployer) newUpdateCertificateInstanceRequest(certPEM, privkeyPEM, certificateId string) *tcssl.UpdateCertificateInstanceRequest {
+	request := tcssl.NewUpdateCertificateInstanceRequest()
+	request.OldCertificateId = common.StringPtr(d.config.CertificateId)
+	request.ResourceTypes = common.StringPtrs(d.config.ResourceProducts)
+	request.ResourceTypesRegions = wrapResourceProductRegions(d.config.ResourceProducts, d.config.ResourceRegions)
+
+	if d.config.UseCertificateContent {
+		request.CertificatePublicKey = common.StringPtr(certPEM)
+		request.CertificatePrivateKey = common.StringPtr(privkeyPEM)
+		request.Repeatable = common.BoolPtr(true)
+		request.AllowDownload = common.BoolPtr(true)
+		request.ProjectId = lo.EmptyableToPtr(uint64(d.config.ProjectId))
+	} else {
+		request.CertificateId = common.StringPtr(certificateId)
+	}
+
+	return request
 }
 
 func (d *Deployer) executeUploadUpdateCertificateInstance(ctx context.Context, certPEM, privkeyPEM string) error {
@@ -198,15 +257,20 @@ func (d *Deployer) executeUploadUpdateCertificateInstance(ctx context.Context, c
 		uploadUpdateCertificateInstanceReq.ResourceTypes = common.StringPtrs(d.config.ResourceProducts)
 		uploadUpdateCertificateInstanceReq.ResourceTypesRegions = wrapResourceProductRegions(d.config.ResourceProducts, d.config.ResourceRegions)
 		uploadUpdateCertificateInstanceResp, err := d.sdkClient.UploadUpdateCertificateInstanceWithContext(ctx, uploadUpdateCertificateInstanceReq)
-		d.logger.Debug("sdk request 'ssl.UploadUpdateCertificateInstance'", slog.Any("request", uploadUpdateCertificateInstanceReq), slog.Any("response", uploadUpdateCertificateInstanceResp))
+		d.logger.Debug("sdk request 'ssl.UploadUpdateCertificateInstance'", slog.String("oldCertificateId", d.config.CertificateId), slog.Any("resourceProducts", d.config.ResourceProducts), slog.Any("response", uploadUpdateCertificateInstanceResp))
 		if err != nil {
 			return false, fmt.Errorf("failed to execute sdk request 'ssl.UploadUpdateCertificateInstance': %w", err)
 		}
 
-		if uploadUpdateCertificateInstanceResp.Response.DeployStatus == nil {
+		if uploadUpdateCertificateInstanceResp == nil || uploadUpdateCertificateInstanceResp.Response == nil {
 			return false, fmt.Errorf("unexpected deployment job status")
-		} else if *uploadUpdateCertificateInstanceResp.Response.DeployStatus == 1 {
-			deployRecordId = int64(*uploadUpdateCertificateInstanceResp.Response.DeployRecordId)
+		}
+
+		recordId, ready, err := resolveDeployRecordId(uploadUpdateCertificateInstanceResp.Response.DeployStatus, uploadUpdateCertificateInstanceResp.Response.DeployRecordId)
+		if err != nil {
+			return false, err
+		} else if ready {
+			deployRecordId = int64(recordId)
 			return true, nil
 		}
 
@@ -228,7 +292,7 @@ func (d *Deployer) executeUploadUpdateCertificateInstance(ctx context.Context, c
 		}
 
 		var runningCount, succeededCount, failedCount, totalCount int64
-		if describeHostUploadUpdateRecordDetailResp.Response.DeployRecordDetail == nil {
+		if describeHostUploadUpdateRecordDetailResp == nil || describeHostUploadUpdateRecordDetailResp.Response == nil || describeHostUploadUpdateRecordDetailResp.Response.DeployRecordDetail == nil {
 			return false, fmt.Errorf("unexpected tencentcloud deployment job status")
 		} else {
 			for _, record := range describeHostUploadUpdateRecordDetailResp.Response.DeployRecordDetail {
@@ -276,9 +340,6 @@ func wrapResourceProductRegions(resourceProducts, resourceRegions []string) []*t
 		return nil
 	}
 
-	// 仅以下云产品类型支持地域
-	resourceProductsRequireRegion := []string{"apigateway", "clb", "cos", "tcb", "tke", "tse", "waf"}
-
 	temp := make([]*tcssl.ResourceTypeRegions, 0)
 	for _, resourceProduct := range resourceProducts {
 		if slices.Contains(resourceProductsRequireRegion, resourceProduct) {
@@ -290,4 +351,45 @@ func wrapResourceProductRegions(resourceProducts, resourceRegions []string) []*t
 	}
 
 	return temp
+}
+
+func validateResourceProducts(resourceProducts, resourceRegions []string, isReplaced bool) error {
+	supportedProducts := updateCertificateResourceProducts
+	if isReplaced {
+		supportedProducts = uploadUpdateCertificateResourceProducts
+	}
+
+	for _, resourceProduct := range resourceProducts {
+		if !slices.Contains(supportedProducts, resourceProduct) {
+			return fmt.Errorf("config `resourceProducts` contains unsupported resource product %q", resourceProduct)
+		}
+		if slices.Contains(resourceProductsRequireRegion, resourceProduct) && len(resourceRegions) == 0 {
+			return fmt.Errorf("config `resourceRegions` is required for resource product %q", resourceProduct)
+		}
+	}
+
+	return nil
+}
+
+func resolveDeployRecordId(deployStatus *int64, deployRecordId *uint64) (uint64, bool, error) {
+	if deployStatus == nil || deployRecordId == nil {
+		return 0, false, fmt.Errorf("unexpected deployment job status")
+	}
+
+	return *deployRecordId, *deployRecordId > 0, nil
+}
+
+func resolveNewCertificateId(recordDetails []*tcsslmodel.UpdateRecordDetails) string {
+	for _, recordDetailsByType := range recordDetails {
+		if recordDetailsByType == nil {
+			continue
+		}
+		for _, recordDetail := range recordDetailsByType.List {
+			if recordDetail != nil && lo.FromPtr(recordDetail.CertId) != "" {
+				return lo.FromPtr(recordDetail.CertId)
+			}
+		}
+	}
+
+	return ""
 }

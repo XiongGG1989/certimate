@@ -9,12 +9,12 @@
     "all_certificates": "All certificates",
     "expiring_soon_certificates": "Expiring soon certificates",
     "expired_certificates": "Expired certificates",
-    "all_workflows": "All workflows",
-    "enabled_workflows": "Active workflows"
+    "all_workflows": "All workflows"
   },
 
   "shortcut": {
     "": "Shortcuts",
+    "upload_certificate": "Upload SSL certificate",
     "create_workflow": "Create new workflow",
     "change_account": "Change username or password",
     "configure_ca": "Configure certificate authorities",

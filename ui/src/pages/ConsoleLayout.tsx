@@ -2,11 +2,9 @@ import { memo, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  IconBrandGithub,
   IconCertificate,
   IconCodeDots,
   IconFingerprint,
-  IconHelpCircle,
   IconHierarchy3,
   IconHome,
   IconLayoutSidebarLeftCollapse,
@@ -19,9 +17,7 @@ import { Alert, Button, Drawer, Layout, Menu, type MenuProps, theme } from "antd
 
 import AppLocale from "@/components/AppLocale";
 import AppTheme from "@/components/AppTheme";
-import AppVersion from "@/components/AppVersion";
 import Show from "@/components/Show";
-import { APP_DOCUMENT_URL, APP_REPO_URL } from "@/domain/app";
 import { useTriggerElement } from "@/hooks";
 import { getAuthStore } from "@/repository/admin";
 import { isBrowserHappy } from "@/utils/browser";
@@ -39,14 +35,6 @@ const ConsoleLayout = () => {
   const handleLogoutClick = () => {
     auth.clear();
     navigate("/login");
-  };
-
-  const handleDocumentClick = () => {
-    window.open(APP_DOCUMENT_URL, "_blank");
-  };
-
-  const handleGitHubClick = () => {
-    window.open(APP_REPO_URL, "_blank");
   };
 
   const auth = getAuthStore();
@@ -76,16 +64,6 @@ const ConsoleLayout = () => {
                 style={{ background: "transparent", borderInlineEnd: "none" }}
                 inlineCollapsed={siderCollapsed}
                 items={[
-                  {
-                    key: "document",
-                    icon: (
-                      <span className="anticon scale-125" role="img">
-                        <IconHelpCircle size="1em" />
-                      </span>
-                    ),
-                    label: t("common.menu.gethelp"),
-                    onClick: handleDocumentClick,
-                  },
                   {
                     key: "logout",
                     danger: true,
@@ -151,9 +129,6 @@ const ConsoleLayout = () => {
                 <AppLocale.Dropdown>
                   <Button icon={<AppLocale.Icon size="1.25em" stroke="1.25" />} />
                 </AppLocale.Dropdown>
-                <AppVersion.Badge>
-                  <Button icon={<IconBrandGithub size="1.25em" stroke="1.25" />} onClick={handleGitHubClick} />
-                </AppVersion.Badge>
                 <Button danger icon={<IconPower size="1.25em" stroke="1.25" />} onClick={handleLogoutClick} />
               </div>
             </div>
@@ -231,11 +206,10 @@ const SiderMenu = memo(({ collapsed, onSelect }: { collapsed?: boolean; onSelect
   return (
     <>
       <div className="h-[64px] w-full overflow-hidden px-4 py-2 max-md:py-0">
-        <div className="flex size-full items-center justify-around gap-2">
-          <img src={withBasePath("/logo.svg")} className="size-[36px]" />
+        <div className={`flex size-full items-center gap-2 ${collapsed ? "justify-center" : "justify-start pl-2"}`}>
+          <img src={withBasePath("/logo.svg")} className={collapsed ? "size-[36px]" : "size-5"} />
           <Show when={!collapsed}>
-            <span className="w-[81px] truncate text-base leading-[64px] font-semibold">Certimate</span>
-            <AppVersion.LinkButton className="text-xs" />
+            <span className="truncate text-base leading-[64px] font-semibold">AUTO_SSL</span>
           </Show>
         </div>
       </div>

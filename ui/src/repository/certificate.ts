@@ -86,6 +86,16 @@ export const get = async (id: string) => {
   });
 };
 
+export const listManualUploads = async () => {
+  return pbco.getFullList<CertificateModel>({
+    batch: 65535,
+    fields: _commonFields.join(","),
+    filter: pb.filter("source={:source} && workflowRef='' && deleted=null", { source: "upload" }),
+    sort: "subjectAltNames,-updated",
+    requestKey: null,
+  });
+};
+
 export const remove = async (record: MaybeModelRecordWithId<CertificateModel> | MaybeModelRecordWithId<CertificateModel>[]) => {
   const deletedAt = dayjs.utc().format("YYYY-MM-DD HH:mm:ss");
 

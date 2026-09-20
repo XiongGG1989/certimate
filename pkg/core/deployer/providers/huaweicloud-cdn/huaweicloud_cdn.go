@@ -36,7 +36,7 @@ type DeployerConfig struct {
 	// 域名匹配模式。
 	// 零值时默认值 [DOMAIN_MATCH_PATTERN_EXACT]。
 	DomainMatchPattern string `json:"domainMatchPattern,omitempty"`
-	// 加速域名（支持泛域名）。
+	// 加速域名（支持泛域名；精确匹配模式下可用分号、逗号或换行分隔多个域名）。
 	Domain string `json:"domain"`
 }
 
@@ -108,7 +108,13 @@ func (d *Deployer) Deploy(ctx context.Context, certPEM, privkeyPEM string) (*Dep
 				return nil, fmt.Errorf("config `domain` is required")
 			}
 
-			domains = []string{d.config.Domain}
+			domains = splitDomains(d.config.Domain)
+			if len(domains) == 0 {
+				return nil, fmt.Errorf("config `domain` is required")
+			}
+			if len(domains) > MAX_DOMAINS_PER_REQUEST {
+				return nil, fmt.Errorf("config `domain` cannot contain more than %d domains", MAX_DOMAINS_PER_REQUEST)
+			}
 		}
 
 	case DOMAIN_MATCH_PATTERN_WILDCARD:
@@ -159,7 +165,6 @@ func (d *Deployer) Deploy(ctx context.Context, certPEM, privkeyPEM string) (*Dep
 	} else {
 		d.logger.Info("found cdn domains to deploy", slog.Any("domains", domains))
 
-		const MAX_DOMAINS_PER_REQUEST = 50
 		domainChunks := lo.Chunk(domains, MAX_DOMAINS_PER_REQUEST)
 		if err := xloop.ForRangeAllWithContext(ctx, domainChunks, func(ctx context.Context, domains []string, _ int) error {
 			return d.updateDomainsCertificate(ctx, domains, upres.CertId, upres.CertName)
@@ -239,6 +244,53 @@ func (d *Deployer) updateDomainsCertificate(ctx context.Context, domains []strin
 	d.logger.Debug("sdk request 'cdn.UpdateDomainMultiCertificates'", slog.Any("request", updateDomainMultiCertificatesReq), slog.Any("response", updateDomainMultiCertificatesResp))
 	if err != nil {
 		return fmt.Errorf("failed to execute sdk request 'cdn.UpdateDomainMultiCertificates': %w", err)
+	}
+	if err := validateUpdateDomainsCertificateResponse(updateDomainMultiCertificatesResp); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+const MAX_DOMAINS_PER_REQUEST = 50
+
+func splitDomains(value string) []string {
+	items := strings.FieldsFunc(value, func(r rune) bool {
+		return r == ';' || r == ',' || r == '，' || r == '\n' || r == '\r'
+	})
+	items = lo.Map(items, func(item string, _ int) string {
+		return strings.TrimSpace(item)
+	})
+	items = lo.Filter(items, func(item string, _ int) bool {
+		return item != ""
+	})
+	return lo.Uniq(items)
+}
+
+func validateUpdateDomainsCertificateResponse(resp *hwcdnmodel.UpdateDomainMultiCertificatesResponse) error {
+	if resp == nil {
+		return fmt.Errorf("failed to execute sdk request 'cdn.UpdateDomainMultiCertificates': empty response")
+	}
+
+	var failures []string
+	if resp.Result != nil {
+		for _, result := range *resp.Result {
+			if !strings.EqualFold(lo.FromPtr(result.Status), "success") {
+				domain := lo.FromPtr(result.DomainName)
+				reason := lo.FromPtr(result.Reason)
+				if reason == "" {
+					reason = "unknown reason"
+				}
+				failures = append(failures, fmt.Sprintf("%s: %s", domain, reason))
+			}
+		}
+	}
+
+	if len(failures) > 0 {
+		return fmt.Errorf("failed to update certificate for domain(s): %s", strings.Join(failures, "; "))
+	}
+	if resp.Status != nil && !strings.EqualFold(lo.FromPtr(resp.Status), "success") {
+		return fmt.Errorf("failed to update certificates: response status is '%s'", lo.FromPtr(resp.Status))
 	}
 
 	return nil

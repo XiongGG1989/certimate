@@ -43,11 +43,13 @@ const BizDeployNodeConfigForm = ({ node, ...props }: BizDeployNodeConfigFormProp
   };
 
   const initialValues = useMemo(() => {
-    return node.form?.getValueIn("config") as WorkflowNodeConfigForBizDeploy | undefined;
+    const values = node.form?.getValueIn("config") as WorkflowNodeConfigForBizDeploy | undefined;
+    if (!values) return values;
+    return values;
   }, [node]);
 
   const formSchema = getSchema({ i18n }).superRefine((values, ctx) => {
-    if (values.certificateOutputNodeId) {
+    if (!values.certificateId && values.certificateOutputNodeId) {
       if (!certificateOutputNodeIdOptions.some((option) => option.value === values.certificateOutputNodeId)) {
         ctx.addIssue({
           code: "custom",
@@ -139,6 +141,7 @@ const BizDeployNodeConfigForm = ({ node, ...props }: BizDeployNodeConfigFormProp
 
         <div style={{ display: fieldProvider ? "block" : "none" }}>
           <div id="parameters" data-anchor="parameters">
+            <Form.Item name="certificateId" hidden />
             <Form.Item
               name="certificateOutputNodeId"
               label={t("workflow_node.deploy.form.certificate_output_node_id.label")}
@@ -158,6 +161,7 @@ const BizDeployNodeConfigForm = ({ node, ...props }: BizDeployNodeConfigFormProp
                 }}
                 options={certificateOutputNodeIdOptions}
                 placeholder={t("workflow_node.deploy.form.certificate_output_node_id.placeholder")}
+                onChange={() => formInst.setFieldValue("certificateId", void 0)}
               />
             </Form.Item>
           </div>
@@ -262,13 +266,22 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
 
   return z
     .object({
-      certificateOutputNodeId: z.string().nonempty(),
+      certificateSource: z.enum(["node", "manual"]).nullish(),
+      certificateOutputNodeId: z.string().nullish(),
+      certificateId: z.string().nullish(),
       provider: z.string().nonempty(),
       providerAccessId: z.string().nullish(),
       providerConfig: z.any().nullish(),
       skipOnLastSucceeded: z.boolean().nullish(),
     })
     .superRefine((values, ctx) => {
+      if (!values.certificateOutputNodeId && !values.certificateId) {
+        ctx.addIssue({
+          code: "custom",
+          message: t("workflow_node.deploy.form.certificate_output_node_id.placeholder"),
+          path: ["certificateOutputNodeId"],
+        });
+      }
       if (values.provider) {
         const provider = deploymentProvidersMap.get(values.provider);
         if (!provider?.builtin && !values.providerAccessId) {

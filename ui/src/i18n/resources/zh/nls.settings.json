@@ -185,6 +185,11 @@
 
   "about": {
     "tab": "关于",
+    "acknowledgement": {
+      "title": "感谢 Certimate 项目",
+      "description": "AUTO_SSL 基于 Certimate 开源项目构建，感谢原项目及所有贡献者提供的优秀基础。",
+      "button": "访问 Certimate 项目"
+    },
     "version": {
       "new": "新版本可升级"
     },

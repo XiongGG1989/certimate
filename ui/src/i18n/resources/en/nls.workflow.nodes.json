@@ -375,8 +375,16 @@
           },
           "url": {
             "label": "URL"
+          },
+          "library": {
+            "label": "Certificate library"
           }
         }
+      },
+      "certificate_id": {
+        "label": "Certificate library entry",
+        "placeholder": "Select a manually uploaded certificate",
+        "help": "Select a certificate from the library and expose it to subsequent deployment nodes as this node's output."
       },
       "name": {
         "label": "Domains / IP addresses",
@@ -462,10 +470,22 @@
       }
     },
     "form": {
+      "certificate_source": {
+        "label": "Certificate source",
+        "option": {
+          "node": "Previous node",
+          "manual": "Certificate library"
+        }
+      },
       "certificate_output_node_id": {
         "label": "Certificate to deploy",
         "placeholder": "Please select certificate to deploy",
         "help": "Notes: The certificate to be deployed comes from the previous nodes of application or upload."
+      },
+      "certificate_id": {
+        "label": "Certificate to deploy",
+        "placeholder": "Select a manually uploaded certificate",
+        "help": "The workflow keeps a stable certificate ID. Updating its content does not require reconfiguring the workflow."
       },
       "provider": {
         "label": "Hosting provider",
@@ -1624,7 +1644,12 @@
       },
       "huaweicloud_cdn_domain": {
         "label": "Huawei Cloud CDN domain",
-        "placeholder": "Please enter Huawei Cloud CDN domain name"
+        "placeholder": "Please enter a Huawei Cloud CDN domain name",
+        "placeholder_multiple": "Enter CDN domains separated by commas",
+        "modal_title": "Huawei Cloud CDN domains (up to 50)",
+        "errmsg": {
+          "invalid_multiple": "Enter between 1 and 50 valid Huawei Cloud CDN domains"
+        }
       },
       "huaweicloud_obs_region": {
         "label": "Huawei Cloud region",
@@ -1694,6 +1719,16 @@
         "label": "Huawei Cloud region",
         "placeholder": "Please enter Huawei Cloud WAF region (e.g. cn-north-1)",
         "tooltip": "For more information, see <a href=\"https://console-intl.huaweicloud.com/apiexplorer/#/endpoint/waf?locale=en-us\" target=\"_blank\">https://console-intl.huaweicloud.com/apiexplorer/#/endpoint/waf</a>"
+      },
+      "huaweicloud_waf_enterprise_project_id": {
+        "label": "Huawei Cloud enterprise project ID (Optional)",
+        "placeholder": "Enter the enterprise project ID of the WAF resource (defaults to 0)",
+        "tooltip": "Enter the enterprise project ID for WAF resources outside the default enterprise project. Leave it empty or enter 0 for the default enterprise project."
+      },
+      "huaweicloud_waf_project_id": {
+        "label": "Huawei Cloud project ID (Optional)",
+        "placeholder": "Enter the project ID of the region containing the WAF resource",
+        "tooltip": "The project_id path parameter of ShowCertificate. When empty, it is queried automatically from IAM using the selected region."
       },
       "huaweicloud_waf_deploy_target": {
         "option": {
@@ -2466,6 +2501,12 @@
       "tencentcloud_sslupdate": {
         "guide": "TIPS: This will invoke Tencent Cloud OpenAPI <em>UpdateCertificateInstance</em> or <em>UploadUpdateCertificateInstance</em> to create an asynchronously deployment task."
       },
+      "tencentcloud_ssloneclickupdate": {
+        "guide": "This invokes Tencent Cloud OpenAPI <em>UpdateCertificateInstance</em> to upload the new certificate and update cloud resources associated with the old certificate. Enter the current certificate ID for the first run; after a successful deployment, the new certificate ID is saved and used automatically on subsequent runs."
+      },
+      "tencentcloud_ssloneclickupdate_resource_products": {
+        "help": "Notes: Multiple values should be separated by semicolons. Supported values: clb, cdn, waf, live, ddos, teo, apigateway, vod, tke, tcb, tse, cos, mqtt, scf, tdmq, and gaap."
+      },
       "tencentcloud_sslupdate_endpoint": {
         "label": "Tencent Cloud API endpoint (Optional)",
         "placeholder": "Please enter Tencent Cloud SSL API endpoint (e.g. ssl.intl.tencentcloudapi.com)",
@@ -2482,7 +2523,7 @@
         "errmsg": {
           "invalid": "Invalid resource regions"
         },
-        "help": "Notes: Multiple values should be separated by semicolons.",
+        "help": "Notes: Multiple values should be separated by semicolons. Required for CLB, TKE, API Gateway, WAF, TCB, TSE, COS, MQTT, SCF, and TDMQ.",
         "tooltip": "For more information, see <a href=\"https://www.tencentcloud.com/document/product/1007/57981\" target=\"_blank\">https://www.tencentcloud.com/document/product/1007/57981</a> or <a href=\"https://www.tencentcloud.com/document/product/1007/70503\" target=\"_blank\">https://www.tencentcloud.com/document/product/1007/70503</a>",
         "multiple_input_modal": {
           "title": "Change Tencent Cloud resource regions",
@@ -2495,7 +2536,7 @@
         "errmsg": {
           "invalid": "Invalid resource products"
         },
-        "help": "Notes: Multiple values should be separated by semicolons.",
+        "help": "Notes: Multiple values should be separated by semicolons. Updating to a new certificate ID supports clb, cdn, waf, live, ddos, teo, apigateway, vod, tke, tcb, tse, cos, mqtt, scf, tdmq, and gaap; keeping the certificate ID unchanged supports clb only.",
         "tooltip": "For more information, see <a href=\"https://www.tencentcloud.com/document/product/1007/57981\" target=\"_blank\">https://www.tencentcloud.com/document/product/1007/57981</a> or <a href=\"https://www.tencentcloud.com/document/product/1007/70503\" target=\"_blank\">https://www.tencentcloud.com/document/product/1007/70503</a>",
         "multiple_input_modal": {
           "title": "Change Tencent Cloud resource products",

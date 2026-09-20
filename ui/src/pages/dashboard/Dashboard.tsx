@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
-  IconActivity,
   IconAlertHexagon,
+  IconArrowUpRight,
   IconBox,
   IconCertificate,
   IconCirclePlus,
-  IconConfetti,
   IconExternalLink,
   IconHexagonLetterX,
   IconHistory,
@@ -16,20 +15,20 @@ import {
   IconReload,
   IconRoute,
   IconShieldCheckered,
+  IconUpload,
 } from "@tabler/icons-react";
 import { useRequest } from "ahooks";
-import { App, Button, Card, Col, Row, Skeleton, Table, type TableProps, Typography } from "antd";
+import { App, Button, Card, Col, Row, Skeleton, Table, type TableProps, Typography, theme } from "antd";
 import dayjs from "dayjs";
 import { ClientResponseError } from "pocketbase";
 
 import { get as getStatistics } from "@/api/statistics";
 import Empty from "@/components/Empty";
+import CertificateUploadModal from "@/components/certificate/CertificateUploadModal";
 import WorkflowRunDetailDrawer from "@/components/workflow/WorkflowRunDetailDrawer";
 import WorkflowStatus from "@/components/workflow/WorkflowStatus";
-import { APP_DOWNLOAD_URL } from "@/domain/app";
 import { type Statistics } from "@/domain/statistics";
 import { type WorkflowRunModel } from "@/domain/workflowRun";
-import { useBrowserTheme, useVersionChecker } from "@/hooks";
 import { get as getWorkflowRun, list as listWorkflowRuns } from "@/repository/workflowRun";
 import { mergeCls } from "@/utils/css";
 import { unwrapErrMsg } from "@/utils/error";
@@ -38,29 +37,39 @@ const Dashboard = () => {
   const { t } = useTranslation();
 
   return (
-    <div className="px-6 py-4">
-      <div className="container">
-        <h1>{t("dashboard.page.heading")}</h1>
-      </div>
+    <div className="px-4 py-5 md:px-6 lg:px-8">
+      <div className="container max-w-screen-2xl">
+        <h1 className="mb-6">{t("dashboard.page.heading")}</h1>
 
-      <div className="container">
-        <div className="my-1.5">
+        <section>
           <StatisticCards />
-        </div>
+        </section>
 
-        <div className="mt-8">
-          <h3>{t("dashboard.shortcut")}</h3>
+        <section className="mt-7">
+          <SectionHeading title={t("dashboard.shortcut")} />
           <Shortcuts />
-        </div>
+        </section>
 
-        <div className="mt-8">
-          <h3>{t("dashboard.recent_workflow_runs")}</h3>
-          <WorkflowRunHistoryTable />
-        </div>
+        <section className="mt-7">
+          <Card
+            className="overflow-hidden shadow-sm"
+            title={<SectionHeading title={t("dashboard.recent_workflow_runs")} />}
+            styles={{ header: { minHeight: 56 }, body: { padding: 0 } }}
+          >
+            <WorkflowRunHistoryTable />
+          </Card>
+        </section>
       </div>
     </div>
   );
 };
+
+const SectionHeading = ({ title }: { title: React.ReactNode }) => (
+  <div className="flex items-center gap-3">
+    <span className="h-4 w-1 rounded-full bg-primary" />
+    <h3 className="m-0 text-base font-semibold">{title}</h3>
+  </div>
+);
 
 const StatisticCard = ({
   className,
@@ -68,6 +77,7 @@ const StatisticCard = ({
   label,
   loading,
   icon,
+  accent,
   value,
   onClick,
 }: {
@@ -76,36 +86,40 @@ const StatisticCard = ({
   label: React.ReactNode;
   loading?: boolean;
   icon: React.ReactNode;
+  accent: string;
   value?: string | number | React.ReactNode;
   onClick?: () => void;
 }) => {
   return (
     <Card
-      className={mergeCls("size-full overflow-hidden ", className)}
-      style={style}
+      className={mergeCls("size-full overflow-hidden border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md", className)}
+      style={{ ...style, borderTop: `2px solid ${accent}` }}
       styles={{ body: { padding: 0 } }}
       hoverable
       loading={loading}
-      variant="borderless"
       onClick={onClick}
     >
-      <div className="relative overflow-hidden pt-6 pr-4 pb-4 pl-6">
-        <div className="absolute inset-0 z-0 bg-stone-200 opacity-10">
+      <div className="relative overflow-hidden p-5">
+        <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.035]">
           <div
             className="size-full"
             style={{
-              backgroundImage:
-                "linear-gradient(rgba(255, 255, 255, 0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.8) 1px, transparent 1px)",
-              backgroundSize: "20px 20px",
+              backgroundImage: "linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)",
+              backgroundSize: "16px 16px",
             }}
           />
         </div>
-        <div className="mb-2">
-          <div className="truncate text-sm font-medium text-white/75">{label}</div>
-        </div>
-        <div className="relative flex items-center justify-between">
-          <div className="truncate text-4xl font-medium text-white">{value}</div>
-          <div className="flex size-12 items-center justify-center rounded-full bg-white/25 p-3 text-white/75">{icon}</div>
+        <div className="relative flex items-start justify-between gap-4">
+          <div>
+            <div className="mb-3 truncate text-xs font-medium tracking-wide text-secondary">{label}</div>
+            <div className="truncate font-mono text-4xl font-semibold leading-none">{value}</div>
+          </div>
+          <div
+            className="flex size-11 shrink-0 items-center justify-center rounded-lg"
+            style={{ background: `color-mix(in srgb, ${accent} 12%, transparent)`, color: accent }}
+          >
+            {icon}
+          </div>
         </div>
       </div>
     </Card>
@@ -117,23 +131,14 @@ const StatisticCards = ({ className, style }: { className?: string; style?: Reac
 
   const { t } = useTranslation();
 
-  const { theme: browserTheme } = useBrowserTheme();
-
   const { notification } = App.useApp();
 
   const cardGridSpans = {
-    xs: { flex: "50%" },
+    xs: { flex: "100%" },
+    sm: { flex: "50%" },
     md: { flex: "50%" },
-    lg: { flex: "33.3333%" },
-    xl: { flex: "33.3333%" },
-    xxl: { flex: "20%" },
+    lg: { flex: "25%" },
   };
-  const cardStylesFn = (color: string) => ({
-    background:
-      browserTheme === "dark"
-        ? `linear-gradient(135deg, color-mix(in srgb, ${color} 50%, black 20%) 0%, color-mix(in srgb, ${color} 50%, white 20%) 100%)`
-        : `linear-gradient(135deg, color-mix(in srgb, ${color} 80%, black 30%) 0%, color-mix(in srgb, ${color} 80%, white 30%) 100%)`,
-  });
 
   const [statistics, setStatistics] = useState<Statistics>();
 
@@ -163,8 +168,8 @@ const StatisticCards = ({ className, style }: { className?: string; style?: Reac
       <Row className="justify-stretch" gutter={[16, 16]}>
         <Col className="overflow-hidden" {...cardGridSpans}>
           <StatisticCard
-            style={cardStylesFn("var(--color-info)")}
-            icon={<IconShieldCheckered size={48} />}
+            accent="var(--color-info)"
+            icon={<IconShieldCheckered size={24} />}
             label={t("dashboard.statistics.all_certificates")}
             loading={loading}
             value={statistics?.certificateTotal ?? "-"}
@@ -173,28 +178,8 @@ const StatisticCards = ({ className, style }: { className?: string; style?: Reac
         </Col>
         <Col className="overflow-hidden" {...cardGridSpans}>
           <StatisticCard
-            style={cardStylesFn("var(--color-warning)")}
-            icon={<IconAlertHexagon size={48} />}
-            label={t("dashboard.statistics.expiring_soon_certificates")}
-            loading={loading}
-            value={statistics?.certificateExpiringSoon ?? "-"}
-            onClick={() => navigate("/certificates?state=expiringSoon")}
-          />
-        </Col>
-        <Col className="overflow-hidden" {...cardGridSpans}>
-          <StatisticCard
-            style={cardStylesFn("var(--color-error)")}
-            icon={<IconHexagonLetterX size={48} />}
-            label={t("dashboard.statistics.expired_certificates")}
-            loading={loading}
-            value={statistics?.certificateExpired ?? "-"}
-            onClick={() => navigate("/certificates?state=expired")}
-          />
-        </Col>
-        <Col className="overflow-hidden" {...cardGridSpans}>
-          <StatisticCard
-            style={cardStylesFn("var(--color-info)")}
-            icon={<IconRoute size={48} />}
+            accent="var(--color-primary)"
+            icon={<IconRoute size={24} />}
             label={t("dashboard.statistics.all_workflows")}
             loading={loading}
             value={statistics?.workflowTotal ?? "-"}
@@ -203,12 +188,22 @@ const StatisticCards = ({ className, style }: { className?: string; style?: Reac
         </Col>
         <Col className="overflow-hidden" {...cardGridSpans}>
           <StatisticCard
-            style={cardStylesFn("var(--color-success)")}
-            icon={<IconActivity size={48} />}
-            label={t("dashboard.statistics.enabled_workflows")}
+            accent="var(--color-warning)"
+            icon={<IconAlertHexagon size={24} />}
+            label={t("dashboard.statistics.expiring_soon_certificates")}
             loading={loading}
-            value={statistics?.workflowEnabled ?? "-"}
-            onClick={() => navigate("/workflows?state=enabled")}
+            value={statistics?.certificateExpiringSoon ?? "-"}
+            onClick={() => navigate("/certificates?state=expiringSoon")}
+          />
+        </Col>
+        <Col className="overflow-hidden" {...cardGridSpans}>
+          <StatisticCard
+            accent="var(--color-error)"
+            icon={<IconHexagonLetterX size={24} />}
+            label={t("dashboard.statistics.expired_certificates")}
+            loading={loading}
+            value={statistics?.certificateExpired ?? "-"}
+            onClick={() => navigate("/certificates?state=expired")}
           />
         </Col>
       </Row>
@@ -218,53 +213,63 @@ const StatisticCards = ({ className, style }: { className?: string; style?: Reac
 
 const Shortcuts = ({ className, style }: { className?: string; style?: React.CSSProperties }) => {
   const navigate = useNavigate();
-
   const { t } = useTranslation();
+  const { token: themeToken } = theme.useToken();
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
-  const { hasUpdate } = useVersionChecker();
+  const actions = [
+    {
+      key: "upload-certificate",
+      label: t("dashboard.shortcut.upload_certificate"),
+      icon: <IconUpload size={22} />,
+      color: "var(--color-success)",
+      onClick: () => setUploadModalOpen(true),
+    },
+    {
+      key: "create-workflow",
+      label: t("dashboard.shortcut.create_workflow"),
+      icon: <IconCirclePlus size={22} />,
+      color: "var(--color-primary)",
+      onClick: () => navigate("/workflows/new"),
+    },
+    {
+      key: "change-account",
+      label: t("dashboard.shortcut.change_account"),
+      icon: <IconLock size={22} />,
+      color: "var(--color-warning)",
+      onClick: () => navigate("/settings/account"),
+    },
+    {
+      key: "configure-ca",
+      label: t("dashboard.shortcut.configure_ca"),
+      icon: <IconPlugConnected size={22} />,
+      color: "var(--color-info)",
+      onClick: () => navigate("/settings/ssl-provider"),
+    },
+  ];
 
   return (
     <div className={className} style={style}>
-      <div className="flex items-center gap-4 not-md:flex-wrap">
-        <Button
-          className="shadow-sm"
-          icon={<IconCirclePlus color="var(--color-primary)" size="1.25em" />}
-          shape="round"
-          size="large"
-          onClick={() => navigate("/workflows/new")}
-        >
-          <span className="text-sm">{t("dashboard.shortcut.create_workflow")}</span>
-        </Button>
-        <Button
-          className="shadow-sm"
-          icon={<IconLock color="var(--color-warning)" size="1.25em" />}
-          shape="round"
-          size="large"
-          onClick={() => navigate("/settings/account")}
-        >
-          <span className="text-sm">{t("dashboard.shortcut.change_account")}</span>
-        </Button>
-        <Button
-          className="shadow-sm"
-          icon={<IconPlugConnected color="var(--color-info)" size="1.25em" />}
-          shape="round"
-          size="large"
-          onClick={() => navigate("/settings/ssl-provider")}
-        >
-          <span className="text-sm">{t("dashboard.shortcut.configure_ca")}</span>
-        </Button>
-        {hasUpdate && (
-          <Button
-            className="shadow-sm"
-            icon={<IconConfetti className="animate-bounce" color="var(--color-error)" size="1.25em" />}
-            shape="round"
-            size="large"
-            onClick={() => window.open(APP_DOWNLOAD_URL, "_blank")}
-          >
-            <span className="text-sm">{t("dashboard.shortcut.upgrade")}</span>
-          </Button>
-        )}
-      </div>
+      <Row gutter={[12, 12]}>
+        {actions.map((action) => (
+          <Col key={action.key} xs={24} sm={12} lg={6}>
+            <Card className="group cursor-pointer shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md" hoverable onClick={action.onClick}>
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex size-10 shrink-0 items-center justify-center rounded-lg"
+                  style={{ background: `color-mix(in srgb, ${action.color} 12%, transparent)`, color: action.color }}
+                >
+                  {action.icon}
+                </div>
+                <div className="min-w-0 flex-1 truncate text-sm font-medium">{action.label}</div>
+                <IconArrowUpRight className="opacity-40 transition-opacity group-hover:opacity-100" color={themeToken.colorTextSecondary} size={18} />
+              </div>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
+      <CertificateUploadModal open={uploadModalOpen} onOpenChange={setUploadModalOpen} />
     </div>
   );
 };

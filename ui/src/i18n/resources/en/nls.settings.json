@@ -185,6 +185,11 @@
 
   "about": {
     "tab": "About",
+    "acknowledgement": {
+      "title": "Thanks to the Certimate project",
+      "description": "AUTO_SSL is built on the Certimate open-source project. We appreciate the excellent foundation created by its maintainers and contributors.",
+      "button": "Visit Certimate project"
+    },
     "version": {
       "new": "New version available"
     },

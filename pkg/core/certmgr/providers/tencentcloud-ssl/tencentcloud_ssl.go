@@ -73,7 +73,7 @@ func (c *Certmgr) Upload(ctx context.Context, certPEM, privkeyPEM string) (*Uplo
 	uploadCertificateReq.CertificatePrivateKey = common.StringPtr(privkeyPEM)
 	uploadCertificateReq.Repeatable = common.BoolPtr(false)
 	uploadCertificateResp, err := c.sdkClient.UploadCertificateWithContext(ctx, uploadCertificateReq)
-	c.logger.Debug("sdk request 'ssl.UploadCertificate'", slog.Any("request", uploadCertificateReq), slog.Any("response", uploadCertificateResp))
+	c.logger.Debug("sdk request 'ssl.UploadCertificate'", slog.Any("response", uploadCertificateResp))
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute sdk request 'ssl.UploadCertificate': %w", err)
 	}

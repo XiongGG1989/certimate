@@ -1,15 +1,18 @@
 import { useMemo } from "react";
 import { getI18n, useTranslation } from "react-i18next";
 import { type FlowNodeEntity } from "@flowgram.ai/fixed-layout-editor";
-import { type AnchorProps, Form, type FormInstance, Input, Radio } from "antd";
+import { useRequest } from "ahooks";
+import { type AnchorProps, Form, type FormInstance, Input, Radio, Select, theme } from "antd";
 import { createSchemaFieldRule } from "antd-zod";
 import { z } from "zod";
 
 import FileTextInput from "@/components/FileTextInput";
 import Show from "@/components/Show";
 import Tips from "@/components/Tips";
+import { type CertificateModel } from "@/domain/certificate";
 import { type WorkflowNodeConfigForBizUpload, defaultNodeConfigForBizUpload } from "@/domain/workflow";
 import { useAntdForm } from "@/hooks";
+import { listManualUploads } from "@/repository/certificate";
 import { getCertificateSubjectAltNames as getX509SubjectAltNames, validatePEMCertificate, validatePEMPrivateKey } from "@/utils/x509";
 
 import { NodeFormContextProvider } from "./_context";
@@ -23,6 +26,7 @@ export interface BizUploadNodeConfigFormProps {
 const UPLOAD_SOURCE_FORM = "form" as const;
 const UPLOAD_SOURCE_LOCAL = "local" as const;
 const UPLOAD_SOURCE_URL = "url" as const;
+const UPLOAD_SOURCE_LIBRARY = "library" as const;
 
 const BizUploadNodeConfigForm = ({ node, ...props }: BizUploadNodeConfigFormProps) => {
   if (node.flowNodeType !== NodeType.BizUpload) {
@@ -30,6 +34,7 @@ const BizUploadNodeConfigForm = ({ node, ...props }: BizUploadNodeConfigFormProp
   }
 
   const { i18n, t } = useTranslation();
+  const { token: themeToken } = theme.useToken();
 
   const initialValues = useMemo(() => {
     return node.form?.getValueIn("config") as WorkflowNodeConfigForBizUpload | undefined;
@@ -52,7 +57,25 @@ const BizUploadNodeConfigForm = ({ node, ...props }: BizUploadNodeConfigFormProp
     return void 0;
   }, [fieldSource, fieldCertificate]);
 
+  const { data: manualCertificates = [], loading: manualCertificatesLoading } = useRequest(listManualUploads);
+  const manualCertificateOptions = useMemo(
+    () =>
+      manualCertificates.map((certificate) => ({
+        label: certificate.subjectAltNames.split(";").join("; "),
+        value: certificate.id,
+        certificate,
+      })),
+    [manualCertificates]
+  );
+
   const handleSourceChange = (value: string) => {
+    if (value === UPLOAD_SOURCE_LIBRARY) {
+      formInst.setFieldValue("certificate", void 0);
+      formInst.setFieldValue("privateKey", void 0);
+      return;
+    }
+
+    formInst.setFieldValue("certificateId", void 0);
     if (value === initialValues?.source) {
       formInst.resetFields(["certificate", "privateKey"]);
     } else {
@@ -72,8 +95,37 @@ const BizUploadNodeConfigForm = ({ node, ...props }: BizUploadNodeConfigFormProp
               <Radio.Button value={UPLOAD_SOURCE_FORM}>{t("workflow_node.upload.form.source.option.form.label")}</Radio.Button>
               <Radio.Button value={UPLOAD_SOURCE_LOCAL}>{t("workflow_node.upload.form.source.option.local.label")}</Radio.Button>
               <Radio.Button value={UPLOAD_SOURCE_URL}>{t("workflow_node.upload.form.source.option.url.label")}</Radio.Button>
+              <Radio.Button value={UPLOAD_SOURCE_LIBRARY}>{t("workflow_node.upload.form.source.option.library.label")}</Radio.Button>
             </Radio.Group>
           </Form.Item>
+
+          <Show when={fieldSource === UPLOAD_SOURCE_LIBRARY}>
+            <Form.Item
+              name="certificateId"
+              label={t("workflow_node.upload.form.certificate_id.label")}
+              extra={t("workflow_node.upload.form.certificate_id.help")}
+              rules={[formRule]}
+            >
+              <Select
+                loading={manualCertificatesLoading}
+                optionFilterProp="label"
+                optionRender={({ data }) => {
+                  const certificate = data.certificate as CertificateModel;
+                  return (
+                    <div className="flex items-center justify-between gap-4 overflow-hidden">
+                      <div className="flex-1 truncate">{data.label}</div>
+                      <div className="origin-right scale-90 font-mono text-xs" style={{ color: themeToken.colorTextSecondary }}>
+                        #{certificate.id}
+                      </div>
+                    </div>
+                  );
+                }}
+                options={manualCertificateOptions}
+                placeholder={t("workflow_node.upload.form.certificate_id.placeholder")}
+                showSearch
+              />
+            </Form.Item>
+          </Show>
 
           <Show when={fieldSource === UPLOAD_SOURCE_FORM}>
             <Form.Item label={t("workflow_node.upload.form.name.label")}>
@@ -146,17 +198,18 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
 
   return z
     .object({
-      source: z.enum([UPLOAD_SOURCE_FORM, UPLOAD_SOURCE_LOCAL, UPLOAD_SOURCE_URL]).default(UPLOAD_SOURCE_FORM),
+      source: z.enum([UPLOAD_SOURCE_FORM, UPLOAD_SOURCE_LOCAL, UPLOAD_SOURCE_URL, UPLOAD_SOURCE_LIBRARY]).default(UPLOAD_SOURCE_FORM),
       name: z.string().nullish(),
-      certificate: z.string().nonempty(),
-      privateKey: z.string().nonempty(),
+      certificateId: z.string().nullish(),
+      certificate: z.string().nullish(),
+      privateKey: z.string().nullish(),
     })
     .superRefine((values, ctx) => {
       switch (values.source) {
         case UPLOAD_SOURCE_FORM:
           {
             const scCertificate = z.string().refine((v) => validatePEMCertificate(v), t("workflow_node.upload.form.certificate_pem.errmsg.invalid"));
-            const spCertificate = scCertificate.safeParse(values.certificate);
+            const spCertificate = scCertificate.safeParse(values.certificate ?? "");
             if (!spCertificate.success) {
               ctx.addIssue({
                 code: "custom",
@@ -166,7 +219,7 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
             }
 
             const scPrivateKey = z.string().refine((v) => validatePEMPrivateKey(v), t("workflow_node.upload.form.private_key_pem.errmsg.invalid"));
-            const spPrivateKey = scPrivateKey.safeParse(values.privateKey);
+            const spPrivateKey = scPrivateKey.safeParse(values.privateKey ?? "");
             if (!spPrivateKey.success) {
               ctx.addIssue({
                 code: "custom",
@@ -180,7 +233,7 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
         case UPLOAD_SOURCE_LOCAL:
           {
             const scCertificate = z.string().nonempty();
-            const spCertificate = scCertificate.safeParse(values.certificate);
+            const spCertificate = scCertificate.safeParse(values.certificate ?? "");
             if (!spCertificate.success) {
               ctx.addIssue({
                 code: "custom",
@@ -190,7 +243,7 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
             }
 
             const scPrivateKey = z.string().nonempty();
-            const spPrivateKey = scPrivateKey.safeParse(values.privateKey);
+            const spPrivateKey = scPrivateKey.safeParse(values.privateKey ?? "");
             if (!spPrivateKey.success) {
               ctx.addIssue({
                 code: "custom",
@@ -204,7 +257,7 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
         case UPLOAD_SOURCE_URL:
           {
             const scCertificate = z.url({ protocol: z.core.regexes.httpProtocol });
-            const spCertificate = scCertificate.safeParse(values.certificate);
+            const spCertificate = scCertificate.safeParse(values.certificate ?? "");
             if (!spCertificate.success) {
               ctx.addIssue({
                 code: "custom",
@@ -214,7 +267,7 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
             }
 
             const scPrivateKey = z.url({ protocol: z.core.regexes.httpProtocol });
-            const spPrivateKey = scPrivateKey.safeParse(values.privateKey);
+            const spPrivateKey = scPrivateKey.safeParse(values.privateKey ?? "");
             if (!spPrivateKey.success) {
               ctx.addIssue({
                 code: "custom",
@@ -222,6 +275,16 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
                 path: ["privateKey"],
               });
             }
+          }
+          break;
+
+        case UPLOAD_SOURCE_LIBRARY:
+          if (!values.certificateId) {
+            ctx.addIssue({
+              code: "custom",
+              message: t("workflow_node.upload.form.certificate_id.placeholder"),
+              path: ["certificateId"],
+            });
           }
           break;
       }

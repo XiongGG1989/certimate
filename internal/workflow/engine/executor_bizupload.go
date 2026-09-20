@@ -41,9 +41,10 @@ type bizUploadNodeExecutor struct {
 }
 
 const (
-	BizUploadSourceForm  = "form"
-	BizUploadSourceLocal = "local"
-	BizUploadSourceURL   = "url"
+	BizUploadSourceForm    = "form"
+	BizUploadSourceLocal   = "local"
+	BizUploadSourceURL     = "url"
+	BizUploadSourceLibrary = "library"
 )
 
 func (ne *bizUploadNodeExecutor) Execute(execCtx *NodeExecutionContext) (*NodeExecutionResult, error) {
@@ -83,6 +84,21 @@ func (ne *bizUploadNodeExecutor) Execute(execCtx *NodeExecutionContext) (*NodeEx
 	}
 
 	// 获取证书及私钥
+	if nodeCfg.Source == BizUploadSourceLibrary {
+		if nodeCfg.CertificateId == "" {
+			return execRes, fmt.Errorf("config `certificateId` is required for library source")
+		}
+		certificate, err := ne.certificateRepo.GetById(execCtx.Context(), nodeCfg.CertificateId)
+		if err != nil {
+			return execRes, fmt.Errorf("failed to get certificate #%s from library: %w", nodeCfg.CertificateId, err)
+		}
+
+		ne.setOuputsOfResult(execCtx, execRes, certificate, true)
+		ne.setVariablesOfResult(execCtx, execRes, certificate)
+		ne.logger.Info("certificate loaded from library", slog.String("recordId", certificate.Id))
+		return execRes, nil
+	}
+
 	var certPEM, privkeyPEM string
 	switch nodeCfg.Source {
 	case BizUploadSourceForm:
@@ -203,7 +219,13 @@ func (ne *bizUploadNodeExecutor) getLastOutputArtifacts(execCtx *NodeExecutionCo
 	}
 
 	if lastOutput != nil {
-		lastCertificate, err := ne.certificateRepo.GetByWorkflowRunIdAndNodeId(execCtx.Context(), lastOutput.RunId, lastOutput.NodeId)
+		var lastCertificate *domain.Certificate
+		if certificateId := getCertificateIdFromWorkflowOutput(lastOutput); certificateId != "" {
+			lastCertificate, err = ne.certificateRepo.GetById(execCtx.Context(), certificateId)
+		}
+		if lastCertificate == nil && err == nil {
+			lastCertificate, err = ne.certificateRepo.GetByWorkflowRunIdAndNodeId(execCtx.Context(), lastOutput.RunId, lastOutput.NodeId)
+		}
 		if err != nil && !domain.IsRecordNotFoundError(err) {
 			return lastOutput, nil, fmt.Errorf("failed to get last certificate record of node #%s: %w", execCtx.Node.Id, err)
 		}
@@ -212,6 +234,24 @@ func (ne *bizUploadNodeExecutor) getLastOutputArtifacts(execCtx *NodeExecutionCo
 	}
 
 	return lastOutput, nil, nil
+}
+
+func getCertificateIdFromWorkflowOutput(output *domain.WorkflowOutput) string {
+	if output == nil {
+		return ""
+	}
+
+	for _, entry := range output.Outputs {
+		if entry == nil || entry.Name != "certificate" {
+			continue
+		}
+		parts := strings.SplitN(entry.Value, "#", 2)
+		if len(parts) == 2 && parts[0] == domain.CollectionNameCertificate {
+			return parts[1]
+		}
+	}
+
+	return ""
 }
 
 func (ne *bizUploadNodeExecutor) checkCanSkip(execCtx *NodeExecutionContext, lastOutput *domain.WorkflowOutput, lastCertificate *domain.Certificate) (_skip bool, _reason string) {
@@ -232,6 +272,10 @@ func (ne *bizUploadNodeExecutor) checkCanSkip(execCtx *NodeExecutionContext, las
 			}
 			if strings.TrimSpace(thisNodeCfg.PrivateKey) != strings.TrimSpace(lastNodeCfg.PrivateKey) {
 				return false, "the configuration item 'PrivateKey' changed"
+			}
+		case BizUploadSourceLibrary:
+			if thisNodeCfg.CertificateId != lastNodeCfg.CertificateId {
+				return false, "the configuration item 'CertificateId' changed"
 			}
 
 		default:

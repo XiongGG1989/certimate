@@ -118,6 +118,7 @@ import BizDeployNodeConfigFieldsProviderTencentCloudGAAP from "./BizDeployNodeCo
 import BizDeployNodeConfigFieldsProviderTencentCloudSCF from "./BizDeployNodeConfigFieldsProviderTencentCloudSCF";
 import BizDeployNodeConfigFieldsProviderTencentCloudSSL from "./BizDeployNodeConfigFieldsProviderTencentCloudSSL";
 import BizDeployNodeConfigFieldsProviderTencentCloudSSLDeploy from "./BizDeployNodeConfigFieldsProviderTencentCloudSSLDeploy";
+import BizDeployNodeConfigFieldsProviderTencentCloudSSLOneClickUpdate from "./BizDeployNodeConfigFieldsProviderTencentCloudSSLOneClickUpdate";
 import BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdate from "./BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdate";
 import BizDeployNodeConfigFieldsProviderTencentCloudTSE from "./BizDeployNodeConfigFieldsProviderTencentCloudTSE";
 import BizDeployNodeConfigFieldsProviderTencentCloudVOD from "./BizDeployNodeConfigFieldsProviderTencentCloudVOD";
@@ -271,6 +272,7 @@ const providerComponentMap: Partial<Record<DeploymentProviderType, React.Compone
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_SCF]: BizDeployNodeConfigFieldsProviderTencentCloudSCF,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_SSL]: BizDeployNodeConfigFieldsProviderTencentCloudSSL,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_SSL_DEPLOY]: BizDeployNodeConfigFieldsProviderTencentCloudSSLDeploy,
+  [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_SSL_ONE_CLICK_UPDATE]: BizDeployNodeConfigFieldsProviderTencentCloudSSLOneClickUpdate,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_SSL_UPDATE]: BizDeployNodeConfigFieldsProviderTencentCloudSSLUpdate,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_TSE]: BizDeployNodeConfigFieldsProviderTencentCloudTSE,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_VOD]: BizDeployNodeConfigFieldsProviderTencentCloudVOD,

@@ -172,9 +172,10 @@ func (c WorkflowNodeConfig) AsBizApply() WorkflowNodeConfigForBizApply {
 
 func (c WorkflowNodeConfig) AsBizUpload() WorkflowNodeConfigForBizUpload {
 	return WorkflowNodeConfigForBizUpload{
-		Source:      xmaps.GetOrDefaultString(c, "source", "form"),
-		Certificate: xmaps.GetString(c, "certificate"),
-		PrivateKey:  xmaps.GetString(c, "privateKey"),
+		Source:        xmaps.GetOrDefaultString(c, "source", "form"),
+		CertificateId: xmaps.GetString(c, "certificateId"),
+		Certificate:   xmaps.GetString(c, "certificate"),
+		PrivateKey:    xmaps.GetString(c, "privateKey"),
 	}
 }
 
@@ -191,6 +192,7 @@ func (c WorkflowNodeConfig) AsBizMonitor() WorkflowNodeConfigForBizMonitor {
 func (c WorkflowNodeConfig) AsBizDeploy() WorkflowNodeConfigForBizDeploy {
 	return WorkflowNodeConfigForBizDeploy{
 		CertificateOutputNodeId: xmaps.GetString(c, "certificateOutputNodeId"),
+		CertificateId:           xmaps.GetString(c, "certificateId"),
 		Provider:                xmaps.GetString(c, "provider"),
 		ProviderAccessId:        xmaps.GetString(c, "providerAccessId"),
 		ProviderConfig:          xmaps.GetKVMapAny(c, "providerConfig"),
@@ -246,9 +248,10 @@ type WorkflowNodeConfigForBizApply struct {
 }
 
 type WorkflowNodeConfigForBizUpload struct {
-	Source      string `json:"source"`      // 证书来源，可取值 "form"、"local"、"url"（零值时默认值 "form"）
-	Certificate string `json:"certificate"` // 证书，根据证书来源决定是 PEM 内容 / 文件路径 / URL
-	PrivateKey  string `json:"privateKey"`  // 私钥，根据证书来源决定是 PEM 内容 / 文件路径 / URL
+	Source        string `json:"source"`                  // 证书来源，可取值 "form"、"local"、"url"、"library"（零值时默认值 "form"）
+	CertificateId string `json:"certificateId,omitempty"` // 证书库中的证书记录 ID
+	Certificate   string `json:"certificate"`             // 证书，根据证书来源决定是 PEM 内容 / 文件路径 / URL
+	PrivateKey    string `json:"privateKey"`              // 私钥，根据证书来源决定是 PEM 内容 / 文件路径 / URL
 }
 
 type WorkflowNodeConfigForBizMonitor struct {
@@ -260,6 +263,7 @@ type WorkflowNodeConfigForBizMonitor struct {
 
 type WorkflowNodeConfigForBizDeploy struct {
 	CertificateOutputNodeId string         `json:"certificateOutputNodeId"`    // 前序证书输出节点 ID
+	CertificateId           string         `json:"certificateId,omitempty"`    // 证书库中的证书记录 ID
 	Provider                string         `json:"provider"`                   // 主机提供商
 	ProviderAccessId        string         `json:"providerAccessId,omitempty"` // 主机提供商授权记录 ID
 	ProviderConfig          map[string]any `json:"providerConfig,omitempty"`   // 主机提供商额外配置

@@ -444,6 +444,7 @@ const (
 	DeploymentProviderTypeTencentCloudSCF               = DeploymentProviderType(AccessProviderTypeTencentCloud + "-scf")
 	DeploymentProviderTypeTencentCloudSSL               = DeploymentProviderType(AccessProviderTypeTencentCloud + "-ssl")
 	DeploymentProviderTypeTencentCloudSSLDeploy         = DeploymentProviderType(AccessProviderTypeTencentCloud + "-ssldeploy")
+	DeploymentProviderTypeTencentCloudSSLOneClickUpdate = DeploymentProviderType(AccessProviderTypeTencentCloud + "-ssloneclickupdate")
 	DeploymentProviderTypeTencentCloudSSLUpdate         = DeploymentProviderType(AccessProviderTypeTencentCloud + "-sslupdate")
 	DeploymentProviderTypeTencentCloudTSE               = DeploymentProviderType(AccessProviderTypeTencentCloud + "-tse")
 	DeploymentProviderTypeTencentCloudVOD               = DeploymentProviderType(AccessProviderTypeTencentCloud + "-vod")

@@ -19,7 +19,9 @@ type DeployCertificateRequest struct {
 	PrivateKeyPEM  string
 }
 
-type DeployCertificateResponse struct{}
+type DeployCertificateResponse struct {
+	ExtendedData map[string]any
+}
 
 func (c *Client) DeployCertificate(ctx context.Context, request *DeployCertificateRequest) (*DeployCertificateResponse, error) {
 	if request == nil {
@@ -40,9 +42,14 @@ func (c *Client) DeployCertificate(ctx context.Context, request *DeployCertifica
 	}
 
 	provider.SetLogger(c.logger)
-	if _, err := provider.Deploy(ctx, request.CertificatePEM, request.PrivateKeyPEM); err != nil {
+	result, err := provider.Deploy(ctx, request.CertificatePEM, request.PrivateKeyPEM)
+	if err != nil {
 		return nil, err
 	}
 
-	return &DeployCertificateResponse{}, nil
+	response := &DeployCertificateResponse{}
+	if result != nil {
+		response.ExtendedData = result.ExtendedData
+	}
+	return response, nil
 }

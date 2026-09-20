@@ -25,3 +25,18 @@ export const revoke = (certificateId: string) => {
     url: `/api/certificates/${encodeURIComponent(certificateId)}/revoke`,
   });
 };
+
+export const upload = (params: { certificateId?: string; certificate: string; privateKey: string }) => {
+  type RespData = {
+    certificateId: string;
+  };
+
+  const path = params.certificateId ? `/${encodeURIComponent(params.certificateId)}` : "";
+  return httpPost<RespData>({
+    url: `/api/certificates${path}/upload`,
+    body: {
+      certificate: params.certificate,
+      privateKey: params.privateKey,
+    },
+  });
+};

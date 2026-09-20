@@ -13,6 +13,7 @@ import (
 type certificateService interface {
 	DownloadCertificate(ctx context.Context, req *dtos.CertificateDownloadReq) (*dtos.CertificateDownloadResp, error)
 	RevokeCertificate(ctx context.Context, req *dtos.CertificateRevokeReq) (*dtos.CertificateRevokeResp, error)
+	UploadCertificate(ctx context.Context, req *dtos.CertificateUploadReq) (*dtos.CertificateUploadResp, error)
 }
 
 type CertificatesHandler struct {
@@ -27,8 +28,25 @@ func NewCertificatesHandler(router *router.RouterGroup[*core.RequestEvent], serv
 	group := router.Group("/certificates")
 	group.POST("/{certificateId}/download", handler.downloadCertificate)
 	group.POST("/{certificateId}/revoke", handler.revokeCertificate)
+	group.POST("/upload", handler.uploadCertificate)
+	group.POST("/{certificateId}/upload", handler.uploadCertificate)
 
 	group.POST("/{certificateId}/archive", handler.downloadCertificate) // 兼容旧版
+}
+
+func (handler *CertificatesHandler) uploadCertificate(e *core.RequestEvent) error {
+	req := &dtos.CertificateUploadReq{}
+	req.CertificateId = e.Request.PathValue("certificateId")
+	if err := e.BindBody(req); err != nil {
+		return resp.Err(e, err)
+	}
+
+	res, err := handler.service.UploadCertificate(e.Request.Context(), req)
+	if err != nil {
+		return resp.Err(e, err)
+	}
+
+	return resp.Ok(e, res)
 }
 
 func (handler *CertificatesHandler) downloadCertificate(e *core.RequestEvent) error {

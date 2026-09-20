@@ -374,8 +374,16 @@
           },
           "url": {
             "label": "URL 路径"
+          },
+          "library": {
+            "label": "证书库"
           }
         }
+      },
+      "certificate_id": {
+        "label": "证书库证书",
+        "placeholder": "请选择已手动上传的证书",
+        "help": "从证书库选择证书，并将其作为本节点的输出提供给后续部署节点。"
       },
       "name": {
         "label": "证书名称",
@@ -461,10 +469,22 @@
       }
     },
     "form": {
+      "certificate_source": {
+        "label": "证书来源",
+        "option": {
+          "node": "前序节点",
+          "manual": "证书库"
+        }
+      },
       "certificate_output_node_id": {
         "label": "待部署证书",
         "placeholder": "请选择待部署证书",
         "help": "提示：待部署证书来自之前的申请或上传节点，如果选项为空请先检查前序节点。"
+      },
+      "certificate_id": {
+        "label": "待部署证书",
+        "placeholder": "请选择已手动上传的证书",
+        "help": "证书按固定 ID 引用；在 SSL 证书页面更新内容后，无需重新配置工作流。"
       },
       "provider": {
         "label": "主机提供商",
@@ -1623,7 +1643,12 @@
       },
       "huaweicloud_cdn_domain": {
         "label": "华为云 CDN 加速域名",
-        "placeholder": "请输入华为云 CDN 加速域名"
+        "placeholder": "请输入华为云 CDN 加速域名",
+        "placeholder_multiple": "请输入加速域名，多个域名以逗号分隔",
+        "modal_title": "华为云 CDN 加速域名（最多 50 个）",
+        "errmsg": {
+          "invalid_multiple": "请输入 1 至 50 个有效的华为云 CDN 加速域名"
+        }
       },
       "huaweicloud_obs_region": {
         "label": "华为云服务区域",
@@ -1693,6 +1718,16 @@
         "label": "华为云服务区域",
         "placeholder": "请输入华为云 WAF 服务区域（例如：cn-north-1）",
         "tooltip": "这是什么？请参阅 <a href=\"https://console.huaweicloud.com/apiexplorer/#/endpoint/waf\" target=\"_blank\">https://console.huaweicloud.com/apiexplorer/#/endpoint/waf</a>"
+      },
+      "huaweicloud_waf_enterprise_project_id": {
+        "label": "华为云企业项目 ID（可选）",
+        "placeholder": "请输入 WAF 资源所属的企业项目 ID（默认为 0）",
+        "tooltip": "非默认企业项目中的 WAF 资源必须填写对应的企业项目 ID。默认企业项目可留空或填写 0。"
+      },
+      "huaweicloud_waf_project_id": {
+        "label": "华为云项目 ID（可选）",
+        "placeholder": "请输入 WAF 资源所属区域的项目 ID",
+        "tooltip": "ShowCertificate 请求 URI 中的 project_id。留空时将根据服务区域通过 IAM 自动查询。"
       },
       "huaweicloud_waf_deploy_target": {
         "option": {
@@ -2465,6 +2500,12 @@
       "tencentcloud_sslupdate": {
         "guide": "将通过腾讯云 OpenAPI <em>UpdateCertificateInstance</em> 或 <em>UploadUpdateCertificateInstance</em> 接口创建异步部署任务。"
       },
+      "tencentcloud_ssloneclickupdate": {
+        "guide": "将通过腾讯云 OpenAPI <em>UpdateCertificateInstance</em> 接口上传新证书，并一键更新旧证书关联的云资源。首次运行请填写当前旧证书 ID；部署成功后会自动保存新证书 ID，后续运行无需手工修改。"
+      },
+      "tencentcloud_ssloneclickupdate_resource_products": {
+        "help": "提示：支持多个类型，以半角分号隔开。支持 clb、cdn、waf、live、ddos、teo、apigateway、vod、tke、tcb、tse、cos、mqtt、scf、tdmq、gaap。"
+      },
       "tencentcloud_sslupdate_endpoint": {
         "label": "腾讯云接口端点（可选）",
         "placeholder": "请输入腾讯云 SSL 接口端点（例如：ssl.tencentcloudapi.com）",
@@ -2481,7 +2522,7 @@
         "errmsg": {
           "invalid": "无效的云产品部署地域"
         },
-        "help": "提示：支持多个地域，以半角分号隔开。",
+        "help": "提示：支持多个地域，以半角分号隔开。CLB、TKE、API Gateway、WAF、TCB、TSE、COS、MQTT、SCF、TDMQ 必填。",
         "tooltip": "这是什么？请参阅 <a href=\"https://cloud.tencent.com/document/product/400/91649\" target=\"_blank\">https://cloud.tencent.com/document/product/400/91649</a> 或 <a href=\"https://cloud.tencent.com/document/product/400/119791\" target=\"_blank\">https://cloud.tencent.com/document/product/400/119791</a>",
         "multiple_input_modal": {
           "title": "修改腾讯云云产品部署地域",
@@ -2494,7 +2535,7 @@
         "errmsg": {
           "invalid": "无效的云产品资源类型"
         },
-        "help": "提示：支持多个类型，以半角分号隔开。",
+        "help": "提示：支持多个类型，以半角分号隔开。更新为新证书 ID 时支持 clb、cdn、waf、live、ddos、teo、apigateway、vod、tke、tcb、tse、cos、mqtt、scf、tdmq、gaap；保持证书 ID 不变时仅支持 clb。",
         "tooltip": "这是什么？请参阅 <a href=\"https://cloud.tencent.com/document/product/400/91649\" target=\"_blank\">https://cloud.tencent.com/document/product/400/91649</a> 或 <a href=\"https://cloud.tencent.com/document/product/400/119791\" target=\"_blank\">https://cloud.tencent.com/document/product/400/119791</a><br>注意，这两个接口的所支持的云产品资源类型有所不同，具体请查看腾讯云官方文档。",
         "multiple_input_modal": {
           "title": "修改腾讯云云产品资源类型",

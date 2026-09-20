@@ -11,6 +11,8 @@ import (
 	"github.com/certimate-go/certimate/internal/repository"
 )
 
+const providerConfigOutputPrefix = "providerConfig."
+
 /**
  * Inputs:
  *   - ref: "certificate": string
@@ -42,9 +44,16 @@ func (ne *bizDeployNodeExecutor) Execute(execCtx *NodeExecutionContext) (*NodeEx
 		}
 	}
 
-	// 获取前序节点输出证书
+	// 获取证书库记录或前序节点输出证书
 	var inputCertificate *domain.Certificate
-	if inputState, ok := execCtx.inputs.Get(nodeCfg.CertificateOutputNodeId, "certificate"); ok {
+	if nodeCfg.CertificateId != "" {
+		certificate, err := ne.certificateRepo.GetById(execCtx.Context(), nodeCfg.CertificateId)
+		if err != nil {
+			ne.logger.Warn("could not get certificate from library")
+			return execRes, err
+		}
+		inputCertificate = certificate
+	} else if inputState, ok := execCtx.inputs.Get(nodeCfg.CertificateOutputNodeId, "certificate"); ok {
 		if inputStateValue, ok := inputState.Value.(string); ok {
 			s := strings.Split(inputStateValue, "#")
 			if len(s) == 2 {
@@ -63,7 +72,7 @@ func (ne *bizDeployNodeExecutor) Execute(execCtx *NodeExecutionContext) (*NodeEx
 	}
 
 	// 检测是否可以跳过本次执行
-	if lastOutput != nil && inputCertificate.CreatedAt.Before(lastOutput.UpdatedAt) {
+	if lastOutput != nil && inputCertificate.UpdatedAt.Before(lastOutput.UpdatedAt) {
 		if skippable, reason := ne.checkCanSkip(execCtx, lastOutput); skippable {
 			ne.logger.Info(fmt.Sprintf("skip this deployment, because %s", reason))
 
@@ -89,24 +98,52 @@ func (ne *bizDeployNodeExecutor) Execute(execCtx *NodeExecutionContext) (*NodeEx
 	}
 
 	// 部署证书
+	providerExtendedConfig := maps.Clone(nodeCfg.ProviderConfig)
+	applyPersistedProviderConfig(providerExtendedConfig, lastOutput)
+
 	deployer := certmgmt.NewClient(certmgmt.WithLogger(ne.logger))
 	deployReq := &certmgmt.DeployCertificateRequest{
 		Provider:               domain.DeploymentProviderType(nodeCfg.Provider),
 		ProviderAccessConfig:   providerAccessConfig,
-		ProviderExtendedConfig: nodeCfg.ProviderConfig,
+		ProviderExtendedConfig: providerExtendedConfig,
 		CertificatePEM:         inputCertificate.Certificate,
 		PrivateKeyPEM:          inputCertificate.PrivateKey,
 	}
-	if _, err := deployer.DeployCertificate(execCtx.Context(), deployReq); err != nil {
+	deployResp, err := deployer.DeployCertificate(execCtx.Context(), deployReq)
+	if err != nil {
 		ne.logger.Warn("could not deploy certificate")
 		return execRes, err
 	}
 
 	// 节点输出
+	if deployResp != nil {
+		for key, value := range deployResp.ExtendedData {
+			if strings.HasPrefix(key, providerConfigOutputPrefix) {
+				execRes.AddOutputWithPersistent(stateIOTypeRef, key, fmt.Sprint(value), stateValTypeString)
+			}
+		}
+	}
 	execRes.outputForced = true
 
 	ne.logger.Info("deployment completed")
 	return execRes, nil
+}
+
+func applyPersistedProviderConfig(providerConfig map[string]any, lastOutput *domain.WorkflowOutput) {
+	if providerConfig == nil || lastOutput == nil || !lastOutput.Succeeded {
+		return
+	}
+
+	for _, output := range lastOutput.Outputs {
+		if output == nil || !strings.HasPrefix(output.Name, providerConfigOutputPrefix) {
+			continue
+		}
+
+		key := strings.TrimPrefix(output.Name, providerConfigOutputPrefix)
+		if key != "" {
+			providerConfig[key] = output.Value
+		}
+	}
 }
 
 func (ne *bizDeployNodeExecutor) getLastOutputArtifacts(execCtx *NodeExecutionContext) (*domain.WorkflowOutput, error) {
@@ -124,6 +161,12 @@ func (ne *bizDeployNodeExecutor) checkCanSkip(execCtx *NodeExecutionContext, las
 	if lastOutput != nil && lastOutput.Succeeded {
 		// 比较和上次部署时的关键配置（即影响证书部署的）参数是否一致
 		lastNodeCfg := lastOutput.NodeConfig.AsBizDeploy()
+		if thisNodeCfg.CertificateId != lastNodeCfg.CertificateId {
+			return false, "the configuration item 'CertificateId' changed"
+		}
+		if thisNodeCfg.CertificateOutputNodeId != lastNodeCfg.CertificateOutputNodeId {
+			return false, "the configuration item 'CertificateOutputNodeId' changed"
+		}
 
 		if thisNodeCfg.ProviderAccessId != lastNodeCfg.ProviderAccessId {
 			return false, "the configuration item 'ProviderAccessId' changed"

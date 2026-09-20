@@ -129,6 +129,7 @@ export const defaultNodeConfigForBizApply = (): Partial<WorkflowNodeConfigForBiz
 
 export type WorkflowNodeConfigForBizUpload = {
   source: string;
+  certificateId?: string;
   certificate: string;
   privateKey: string;
 };
@@ -155,7 +156,9 @@ export const defaultNodeConfigForBizMonitor = (): Partial<WorkflowNodeConfigForB
 };
 
 export type WorkflowNodeConfigForBizDeploy = {
-  certificateOutputNodeId: string;
+  certificateSource?: "node" | "manual";
+  certificateOutputNodeId?: string;
+  certificateId?: string;
   provider: string;
   providerAccessId?: string;
   providerConfig?: Record<string, unknown>;

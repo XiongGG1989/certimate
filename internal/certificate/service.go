@@ -4,6 +4,9 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -254,6 +257,62 @@ func (s *CertificateService) RevokeCertificate(ctx context.Context, req *dtos.Ce
 	}
 
 	return &dtos.CertificateRevokeResp{}, nil
+}
+
+func (s *CertificateService) UploadCertificate(ctx context.Context, req *dtos.CertificateUploadReq) (*dtos.CertificateUploadResp, error) {
+	certPEM := strings.TrimSpace(req.Certificate)
+	privkeyPEM := strings.TrimSpace(req.PrivateKey)
+	if certPEM == "" || privkeyPEM == "" {
+		return nil, domain.ErrInvalidParams
+	}
+
+	certX509, err := xcert.ParseCertificateFromPEM(certPEM)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse uploaded certificate: %w", err)
+	}
+
+	privkey, err := xcert.ParsePrivateKeyFromPEM(privkeyPEM)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse uploaded private key: %w", err)
+	}
+
+	matched := false
+	switch pub := certX509.PublicKey.(type) {
+	case *rsa.PublicKey:
+		p, ok := privkey.(*rsa.PrivateKey)
+		matched = ok && pub.Equal(p.Public())
+	case *ecdsa.PublicKey:
+		p, ok := privkey.(*ecdsa.PrivateKey)
+		matched = ok && pub.Equal(p.Public())
+	case ed25519.PublicKey:
+		p, ok := privkey.(ed25519.PrivateKey)
+		matched = ok && pub.Equal(p.Public())
+	}
+	if !matched {
+		return nil, fmt.Errorf("the uploaded private key does not match the uploaded certificate")
+	}
+
+	certificate := &domain.Certificate{Source: domain.CertificateSourceTypeUpload}
+	if req.CertificateId != "" {
+		certificate, err = s.certificateRepo.GetById(ctx, req.CertificateId)
+		if err != nil {
+			return nil, err
+		}
+		if certificate.Source != domain.CertificateSourceTypeUpload || certificate.WorkflowId != "" {
+			return nil, fmt.Errorf("only manually uploaded certificates can be updated")
+		}
+	}
+
+	certificate.PopulateFromPEM(certPEM+"\n", privkeyPEM+"\n")
+	certificate.Source = domain.CertificateSourceTypeUpload
+	certificate.IsRenewed = false
+	certificate.IsRevoked = false
+	certificate, err = s.certificateRepo.Save(ctx, certificate)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dtos.CertificateUploadResp{CertificateId: certificate.Id}, nil
 }
 
 func (s *CertificateService) cleanupExpiredCertificates(ctx context.Context) error {
