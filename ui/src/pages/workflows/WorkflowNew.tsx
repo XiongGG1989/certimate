@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { IconArrowRight, IconSquarePlus2, IconUpload } from "@tabler/icons-react";
 import { App, Button, Card, Spin, Typography } from "antd";
 
+import workflowTemplateCerttestImage from "@/assets/workflow/tpl-certtest.png";
+import workflowTemplateStandardImage from "@/assets/workflow/tpl-standard.png";
 import Show from "@/components/Show";
 import WorkflowGraphImportModal from "@/components/workflow/WorkflowGraphImportModal";
 import {
@@ -16,7 +18,6 @@ import {
 } from "@/domain/workflow";
 import { save as saveWorkflow } from "@/repository/workflow";
 import { unwrapErrMsg } from "@/utils/error";
-import { withBasePath } from "@/utils/url";
 
 const TEMPLATE_KEY_BLANK = "blank" as const;
 const TEMPLATE_KEY_STANDARD = "standard" as const;
@@ -35,13 +36,13 @@ const WorkflowNew = () => {
       key: TEMPLATE_KEY_STANDARD,
       name: t("workflow.new.templates.template.standard.title"),
       description: t("workflow.new.templates.template.standard.description"),
-      image: withBasePath("/imgs/workflow/tpl-standard.png"),
+      image: workflowTemplateStandardImage,
     },
     {
       key: TEMPLATE_KEY_CERTTEST,
       name: t("workflow.new.templates.template.certtest.title"),
       description: t("workflow.new.templates.template.certtest.description"),
-      image: withBasePath("/imgs/workflow/tpl-certtest.png"),
+      image: workflowTemplateCerttestImage,
     },
   ];
   const [templateSelectKey, setTemplateSelectKey] = useState<TemplateKeys>();
