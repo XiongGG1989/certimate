@@ -2669,12 +2669,8 @@
       "ucloud_ucdn_domains": {
         "label": "优刻得 UCDN 加速域名",
         "placeholder": "请输入优刻得 UCDN 加速域名",
-        "help": "支持填写多个加速域名，可使用半角分号、逗号或换行分隔。",
-        "tooltip": "这是什么？请参阅 <a href=\"https://console.ucloud.cn/ucdn\" target=\"_blank\">https://console.ucloud.cn/ucdn</a>",
-        "multiple_input_modal": {
-          "title": "填写多个优刻得 UCDN 加速域名",
-          "placeholder": "请输入优刻得 UCDN 加速域名，如 cdn.example.com"
-        }
+        "help": "每行填写一个加速域名；粘贴以半角分号、逗号分隔的域名时会自动换行。",
+        "tooltip": "这是什么？请参阅 <a href=\"https://console.ucloud.cn/ucdn\" target=\"_blank\">https://console.ucloud.cn/ucdn</a>"
       },
       "ucloud_uclb_endpoint": {
         "label": "优刻得接口端点（可选）",

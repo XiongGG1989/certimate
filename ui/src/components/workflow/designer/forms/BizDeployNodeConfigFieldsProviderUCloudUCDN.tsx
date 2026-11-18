@@ -3,11 +3,12 @@ import { Form, Input } from "antd";
 import { createSchemaFieldRule } from "antd-zod";
 import { z } from "zod";
 
-import MultipleSplitValueInput from "@/components/MultipleSplitValueInput";
-
 import { useFormNestedFieldsContext } from "./_context";
 
 const MULTIPLE_INPUT_SEPARATOR_PATTERN = /[;,，；\r\n]/u;
+const INLINE_INPUT_SEPARATOR_PATTERN = /[;,，；]/gu;
+
+const normalizeDomainsInput = (value?: string | null) => (value ?? "").replace(INLINE_INPUT_SEPARATOR_PATTERN, "\n").replace(/\r\n?/gu, "\n");
 
 const BizDeployNodeConfigFieldsProviderUCloudUCDN = () => {
   const { i18n, t } = useTranslation();
@@ -36,15 +37,12 @@ const BizDeployNodeConfigFieldsProviderUCloudUCDN = () => {
         initialValue={initialValues.domains}
         label={t("workflow_node.deploy.form.ucloud_ucdn_domains.label")}
         extra={t("workflow_node.deploy.form.ucloud_ucdn_domains.help")}
+        getValueProps={(value) => ({ value: normalizeDomainsInput(value) })}
+        normalize={normalizeDomainsInput}
         rules={[formRule]}
         tooltip={<span dangerouslySetInnerHTML={{ __html: t("workflow_node.deploy.form.ucloud_ucdn_domains.tooltip") }}></span>}
       >
-        <MultipleSplitValueInput
-          modalTitle={t("workflow_node.deploy.form.ucloud_ucdn_domains.multiple_input_modal.title")}
-          placeholder={t("workflow_node.deploy.form.ucloud_ucdn_domains.placeholder")}
-          placeholderInModal={t("workflow_node.deploy.form.ucloud_ucdn_domains.multiple_input_modal.placeholder")}
-          splitOptions={{ removeEmpty: true, trimSpace: true }}
-        />
+        <Input.TextArea autoSize={{ minRows: 3, maxRows: 8 }} placeholder={t("workflow_node.deploy.form.ucloud_ucdn_domains.placeholder")} />
       </Form.Item>
     </>
   );
