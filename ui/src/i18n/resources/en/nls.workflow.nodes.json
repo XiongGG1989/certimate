@@ -383,8 +383,11 @@
       },
       "certificate_id": {
         "label": "Certificate library entry",
-        "placeholder": "Select a manually uploaded certificate",
-        "help": "Select a certificate from the library and expose it to subsequent deployment nodes as this node's output."
+        "placeholder": "Select an uploaded certificate",
+        "help": "Select a manually uploaded certificate or one created by a workflow upload node, and expose it to subsequent deployment nodes as this node's output.",
+        "source": {
+          "manual": "Manual upload"
+        }
       },
       "name": {
         "label": "Domains / IP addresses",
@@ -2664,10 +2667,15 @@
         "placeholder": "Please enter UCloud UCDN API endpoint (e.g. api.ucloud-global.com)",
         "tooltip": "<ul style=\"list-style: disc;\"><li><strong>api.ucloud-global.com</strong> for UCloud Global</li><li><strong>api.ucloud.cn</strong> for UCloud in China (<em>Default</em>)</li></ul>"
       },
-      "ucloud_ucdn_domain_id": {
-        "label": "UCloud UCDN domain ID",
-        "placeholder": "Please enter UCloud UCDN domain ID",
-        "tooltip": "For more information, see <a href=\"https://console.ucloud-global.com/ucdn\" target=\"_blank\">https://console.ucloud-global.com/ucdn</a>"
+      "ucloud_ucdn_domains": {
+        "label": "UCloud UCDN acceleration domains",
+        "placeholder": "Enter UCloud UCDN acceleration domains",
+        "help": "You can enter multiple acceleration domains separated by semicolons, commas, or line breaks.",
+        "tooltip": "For more information, see <a href=\"https://console.ucloud-global.com/ucdn\" target=\"_blank\">https://console.ucloud-global.com/ucdn</a>",
+        "multiple_input_modal": {
+          "title": "Enter multiple UCloud UCDN acceleration domains",
+          "placeholder": "Enter an UCloud UCDN acceleration domain, such as cdn.example.com"
+        }
       },
       "ucloud_uclb_endpoint": {
         "label": "UCloud API endpoint (Optional)",

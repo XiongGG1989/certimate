@@ -3,7 +3,11 @@ import { Form, Input } from "antd";
 import { createSchemaFieldRule } from "antd-zod";
 import { z } from "zod";
 
+import MultipleSplitValueInput from "@/components/MultipleSplitValueInput";
+
 import { useFormNestedFieldsContext } from "./_context";
+
+const MULTIPLE_INPUT_SEPARATOR_PATTERN = /[;,，；\r\n]/u;
 
 const BizDeployNodeConfigFieldsProviderUCloudUCDN = () => {
   const { i18n, t } = useTranslation();
@@ -28,13 +32,19 @@ const BizDeployNodeConfigFieldsProviderUCloudUCDN = () => {
       </Form.Item>
 
       <Form.Item
-        name={[parentNamePath, "domainId"]}
-        initialValue={initialValues.domainId}
-        label={t("workflow_node.deploy.form.ucloud_ucdn_domain_id.label")}
+        name={[parentNamePath, "domains"]}
+        initialValue={initialValues.domains}
+        label={t("workflow_node.deploy.form.ucloud_ucdn_domains.label")}
+        extra={t("workflow_node.deploy.form.ucloud_ucdn_domains.help")}
         rules={[formRule]}
-        tooltip={<span dangerouslySetInnerHTML={{ __html: t("workflow_node.deploy.form.ucloud_ucdn_domain_id.tooltip") }}></span>}
+        tooltip={<span dangerouslySetInnerHTML={{ __html: t("workflow_node.deploy.form.ucloud_ucdn_domains.tooltip") }}></span>}
       >
-        <Input placeholder={t("workflow_node.deploy.form.ucloud_ucdn_domain_id.placeholder")} />
+        <MultipleSplitValueInput
+          modalTitle={t("workflow_node.deploy.form.ucloud_ucdn_domains.multiple_input_modal.title")}
+          placeholder={t("workflow_node.deploy.form.ucloud_ucdn_domains.placeholder")}
+          placeholderInModal={t("workflow_node.deploy.form.ucloud_ucdn_domains.multiple_input_modal.placeholder")}
+          splitOptions={{ removeEmpty: true, trimSpace: true }}
+        />
       </Form.Item>
     </>
   );
@@ -42,7 +52,7 @@ const BizDeployNodeConfigFieldsProviderUCloudUCDN = () => {
 
 const getInitialValues = (): Nullish<z.infer<ReturnType<typeof getSchema>>> => {
   return {
-    domainId: "",
+    domains: "",
   };
 };
 
@@ -51,7 +61,7 @@ const getSchema = ({ i18n = getI18n() }: { i18n?: ReturnType<typeof getI18n> }) 
 
   return z.object({
     endpoint: z.string().nullish(),
-    domainId: z.string().nonempty(),
+    domains: z.string().refine((v) => v.split(MULTIPLE_INPUT_SEPARATOR_PATTERN).some((e) => e.trim().length > 0)),
   });
 };
 

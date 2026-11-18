@@ -86,11 +86,12 @@ export const get = async (id: string) => {
   });
 };
 
-export const listManualUploads = async () => {
+export const listSelectableUploadCertificates = async () => {
   return pbco.getFullList<CertificateModel>({
     batch: 65535,
-    fields: _commonFields.join(","),
-    filter: pb.filter("source={:source} && workflowRef='' && deleted=null", { source: "upload" }),
+    expand: ["workflowRef"].join(","),
+    fields: [..._commonFields, ..._expandFields].join(","),
+    filter: pb.filter("source={:source} && deleted=null", { source: "upload" }),
     sort: "subjectAltNames,-updated",
     requestKey: null,
   });

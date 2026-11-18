@@ -12,7 +12,7 @@ import Tips from "@/components/Tips";
 import { type CertificateModel } from "@/domain/certificate";
 import { type WorkflowNodeConfigForBizUpload, defaultNodeConfigForBizUpload } from "@/domain/workflow";
 import { useAntdForm } from "@/hooks";
-import { listManualUploads } from "@/repository/certificate";
+import { listSelectableUploadCertificates } from "@/repository/certificate";
 import { getCertificateSubjectAltNames as getX509SubjectAltNames, validatePEMCertificate, validatePEMPrivateKey } from "@/utils/x509";
 
 import { NodeFormContextProvider } from "./_context";
@@ -57,15 +57,15 @@ const BizUploadNodeConfigForm = ({ node, ...props }: BizUploadNodeConfigFormProp
     return void 0;
   }, [fieldSource, fieldCertificate]);
 
-  const { data: manualCertificates = [], loading: manualCertificatesLoading } = useRequest(listManualUploads);
-  const manualCertificateOptions = useMemo(
+  const { data: selectableCertificates = [], loading: selectableCertificatesLoading } = useRequest(listSelectableUploadCertificates);
+  const selectableCertificateOptions = useMemo(
     () =>
-      manualCertificates.map((certificate) => ({
-        label: certificate.subjectAltNames.split(";").join("; "),
+      selectableCertificates.map((certificate) => ({
+        label: [certificate.subjectAltNames.split(";").join("; "), certificate.expand?.workflowRef?.name].filter(Boolean).join(" · "),
         value: certificate.id,
         certificate,
       })),
-    [manualCertificates]
+    [selectableCertificates]
   );
 
   const handleSourceChange = (value: string) => {
@@ -107,20 +107,25 @@ const BizUploadNodeConfigForm = ({ node, ...props }: BizUploadNodeConfigFormProp
               rules={[formRule]}
             >
               <Select
-                loading={manualCertificatesLoading}
+                loading={selectableCertificatesLoading}
                 optionFilterProp="label"
                 optionRender={({ data }) => {
                   const certificate = data.certificate as CertificateModel;
                   return (
                     <div className="flex items-center justify-between gap-4 overflow-hidden">
-                      <div className="flex-1 truncate">{data.label}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate">{certificate.subjectAltNames.split(";").join("; ")}</div>
+                        <div className="truncate text-xs" style={{ color: themeToken.colorTextSecondary }}>
+                          {certificate.expand?.workflowRef?.name ?? t("workflow_node.upload.form.certificate_id.source.manual")}
+                        </div>
+                      </div>
                       <div className="origin-right scale-90 font-mono text-xs" style={{ color: themeToken.colorTextSecondary }}>
                         #{certificate.id}
                       </div>
                     </div>
                   );
                 }}
-                options={manualCertificateOptions}
+                options={selectableCertificateOptions}
                 placeholder={t("workflow_node.upload.form.certificate_id.placeholder")}
                 showSearch
               />

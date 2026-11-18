@@ -382,8 +382,11 @@
       },
       "certificate_id": {
         "label": "证书库证书",
-        "placeholder": "请选择已手动上传的证书",
-        "help": "从证书库选择证书，并将其作为本节点的输出提供给后续部署节点。"
+        "placeholder": "请选择已上传的证书",
+        "help": "可选择手动上传或工作流上传节点生成的证书，并将其作为本节点的输出提供给后续部署节点。",
+        "source": {
+          "manual": "手动上传"
+        }
       },
       "name": {
         "label": "证书名称",
@@ -2663,10 +2666,15 @@
         "placeholder": "请输入优刻得 UCDN 接口端点（例如：api.ucloud.cn）",
         "tooltip": "这是什么？请参阅 <a href=\"https://docs.ucloud.cn/api/summary/gateway\" target=\"_blank\">https://docs.ucloud.cn/api/summary/gateway</a><br>国际站用户请填写 <em>api.ucloud-global.com</em>。"
       },
-      "ucloud_ucdn_domain_id": {
-        "label": "优刻得 UCDN 域名 ID",
-        "placeholder": "请输入优刻得 UCDN 域名 ID",
-        "tooltip": "这是什么？请参阅 <a href=\"https://console.ucloud.cn/ucdn\" target=\"_blank\">https://console.ucloud.cn/ucdn</a>"
+      "ucloud_ucdn_domains": {
+        "label": "优刻得 UCDN 加速域名",
+        "placeholder": "请输入优刻得 UCDN 加速域名",
+        "help": "支持填写多个加速域名，可使用半角分号、逗号或换行分隔。",
+        "tooltip": "这是什么？请参阅 <a href=\"https://console.ucloud.cn/ucdn\" target=\"_blank\">https://console.ucloud.cn/ucdn</a>",
+        "multiple_input_modal": {
+          "title": "填写多个优刻得 UCDN 加速域名",
+          "placeholder": "请输入优刻得 UCDN 加速域名，如 cdn.example.com"
+        }
       },
       "ucloud_uclb_endpoint": {
         "label": "优刻得接口端点（可选）",

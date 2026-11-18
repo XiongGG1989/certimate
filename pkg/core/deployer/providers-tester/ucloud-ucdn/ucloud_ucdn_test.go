@@ -45,7 +45,7 @@ func TestProvider(t *testing.T) {
 		provider, err := impl.NewDeployer(&impl.DeployerConfig{
 			PrivateKey: fPrivateKey,
 			PublicKey:  fPublicKey,
-			DomainId:   fDomainId,
+			DomainIds:  []string{fDomainId},
 		})
 		require.NoError(t, err)
 

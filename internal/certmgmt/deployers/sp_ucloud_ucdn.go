@@ -21,7 +21,8 @@ func init() {
 			PublicKey:  credentials.PublicKey,
 			ProjectId:  credentials.ProjectId,
 			Endpoint:   xmaps.GetString(options.ProviderExtendedConfig, "endpoint"),
-			DomainId:   xmaps.GetString(options.ProviderExtendedConfig, "domainId"),
+			Domains:    []string{xmaps.GetString(options.ProviderExtendedConfig, "domains")},
+			DomainIds:  []string{xmaps.GetString(options.ProviderExtendedConfig, "domainId")},
 		})
 		return provider, err
 	})
