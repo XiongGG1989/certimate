@@ -13,6 +13,7 @@ import AccessConfigFieldsProviderAkamai from "./AccessConfigFieldsProviderAkamai
 import AccessConfigFieldsProviderAliyun from "./AccessConfigFieldsProviderAliyun";
 import AccessConfigFieldsProviderAPISIX from "./AccessConfigFieldsProviderAPISIX";
 import AccessConfigFieldsProviderArvanCloud from "./AccessConfigFieldsProviderArvanCloud";
+import AccessConfigFieldsProviderAsiaISPCDN from "./AccessConfigFieldsProviderAsiaISPCDN";
 import AccessConfigFieldsProviderAWS from "./AccessConfigFieldsProviderAWS";
 import AccessConfigFieldsProviderAxisNow from "./AccessConfigFieldsProviderAxisNow";
 import AccessConfigFieldsProviderAzure from "./AccessConfigFieldsProviderAzure";
@@ -75,6 +76,7 @@ import AccessConfigFieldsProviderLarkBot from "./AccessConfigFieldsProviderLarkB
 import AccessConfigFieldsProviderLeCDN from "./AccessConfigFieldsProviderLeCDN";
 import AccessConfigFieldsProviderLinode from "./AccessConfigFieldsProviderLinode";
 import AccessConfigFieldsProviderLiteSSL from "./AccessConfigFieldsProviderLiteSSL";
+import AccessConfigFieldsProviderLuaDNS from "./AccessConfigFieldsProviderLuaDNS";
 import AccessConfigFieldsProviderMatrix from "./AccessConfigFieldsProviderMatrix";
 import AccessConfigFieldsProviderMattermost from "./AccessConfigFieldsProviderMattermost";
 import AccessConfigFieldsProviderMohua from "./AccessConfigFieldsProviderMohua";
@@ -143,6 +145,7 @@ const providerComponentMap: Partial<Record<AccessProviderType, React.ComponentTy
   [ACCESS_PROVIDERS.ALIYUN]: AccessConfigFieldsProviderAliyun,
   [ACCESS_PROVIDERS.APISIX]: AccessConfigFieldsProviderAPISIX,
   [ACCESS_PROVIDERS.ARVANCLOUD]: AccessConfigFieldsProviderArvanCloud,
+  [ACCESS_PROVIDERS.ASIAISPCDN]: AccessConfigFieldsProviderAsiaISPCDN,
   [ACCESS_PROVIDERS.AWS]: AccessConfigFieldsProviderAWS,
   [ACCESS_PROVIDERS.AXISNOW]: AccessConfigFieldsProviderAxisNow,
   [ACCESS_PROVIDERS.AZURE]: AccessConfigFieldsProviderAzure,
@@ -205,6 +208,7 @@ const providerComponentMap: Partial<Record<AccessProviderType, React.ComponentTy
   [ACCESS_PROVIDERS.INFOMANIAK]: AccessConfigFieldsProviderInfomaniak,
   [ACCESS_PROVIDERS.LINODE]: AccessConfigFieldsProviderLinode,
   [ACCESS_PROVIDERS.LITESSL]: AccessConfigFieldsProviderLiteSSL,
+  [ACCESS_PROVIDERS.LUADNS]: AccessConfigFieldsProviderLuaDNS,
   [ACCESS_PROVIDERS.MATRIX]: AccessConfigFieldsProviderMatrix,
   [ACCESS_PROVIDERS.MATTERMOST]: AccessConfigFieldsProviderMattermost,
   [ACCESS_PROVIDERS.MOHUA]: AccessConfigFieldsProviderMohua,

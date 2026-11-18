@@ -17,11 +17,13 @@ import BizDeployNodeConfigFieldsProviderAliyunESASaaS from "./BizDeployNodeConfi
 import BizDeployNodeConfigFieldsProviderAliyunFC from "./BizDeployNodeConfigFieldsProviderAliyunFC";
 import BizDeployNodeConfigFieldsProviderAliyunGA from "./BizDeployNodeConfigFieldsProviderAliyunGA";
 import BizDeployNodeConfigFieldsProviderAliyunLive from "./BizDeployNodeConfigFieldsProviderAliyunLive";
+import BizDeployNodeConfigFieldsProviderAliyunMSE from "./BizDeployNodeConfigFieldsProviderAliyunMSE";
 import BizDeployNodeConfigFieldsProviderAliyunNLB from "./BizDeployNodeConfigFieldsProviderAliyunNLB";
 import BizDeployNodeConfigFieldsProviderAliyunOSS from "./BizDeployNodeConfigFieldsProviderAliyunOSS";
 import BizDeployNodeConfigFieldsProviderAliyunVOD from "./BizDeployNodeConfigFieldsProviderAliyunVOD";
 import BizDeployNodeConfigFieldsProviderAliyunWAF from "./BizDeployNodeConfigFieldsProviderAliyunWAF";
 import BizDeployNodeConfigFieldsProviderAPISIX from "./BizDeployNodeConfigFieldsProviderAPISIX";
+import BizDeployNodeConfigFieldsProviderAsiaISPCDN from "./BizDeployNodeConfigFieldsProviderAsiaISPCDN";
 import BizDeployNodeConfigFieldsProviderAWSACM from "./BizDeployNodeConfigFieldsProviderAWSACM";
 import BizDeployNodeConfigFieldsProviderAWSALB from "./BizDeployNodeConfigFieldsProviderAWSALB";
 import BizDeployNodeConfigFieldsProviderAWSAmplify from "./BizDeployNodeConfigFieldsProviderAWSAmplify";
@@ -110,6 +112,7 @@ import BizDeployNodeConfigFieldsProviderTencentCloudCDN from "./BizDeployNodeCon
 import BizDeployNodeConfigFieldsProviderTencentCloudCLB from "./BizDeployNodeConfigFieldsProviderTencentCloudCLB";
 import BizDeployNodeConfigFieldsProviderTencentCloudCOS from "./BizDeployNodeConfigFieldsProviderTencentCloudCOS";
 import BizDeployNodeConfigFieldsProviderTencentCloudCSS from "./BizDeployNodeConfigFieldsProviderTencentCloudCSS";
+import BizDeployNodeConfigFieldsProviderTencentCloudDDoSPro from "./BizDeployNodeConfigFieldsProviderTencentCloudDDoSPro";
 import BizDeployNodeConfigFieldsProviderTencentCloudECDN from "./BizDeployNodeConfigFieldsProviderTencentCloudECDN";
 import BizDeployNodeConfigFieldsProviderTencentCloudEO from "./BizDeployNodeConfigFieldsProviderTencentCloudEO";
 import BizDeployNodeConfigFieldsProviderTencentCloudEOMakers from "./BizDeployNodeConfigFieldsProviderTencentCloudEOMakers";
@@ -171,11 +174,13 @@ const providerComponentMap: Partial<Record<DeploymentProviderType, React.Compone
   [DEPLOYMENT_PROVIDERS.ALIYUN_FC]: BizDeployNodeConfigFieldsProviderAliyunFC,
   [DEPLOYMENT_PROVIDERS.ALIYUN_GA]: BizDeployNodeConfigFieldsProviderAliyunGA,
   [DEPLOYMENT_PROVIDERS.ALIYUN_LIVE]: BizDeployNodeConfigFieldsProviderAliyunLive,
+  [DEPLOYMENT_PROVIDERS.ALIYUN_MSE]: BizDeployNodeConfigFieldsProviderAliyunMSE,
   [DEPLOYMENT_PROVIDERS.ALIYUN_NLB]: BizDeployNodeConfigFieldsProviderAliyunNLB,
   [DEPLOYMENT_PROVIDERS.ALIYUN_OSS]: BizDeployNodeConfigFieldsProviderAliyunOSS,
   [DEPLOYMENT_PROVIDERS.ALIYUN_VOD]: BizDeployNodeConfigFieldsProviderAliyunVOD,
   [DEPLOYMENT_PROVIDERS.ALIYUN_WAF]: BizDeployNodeConfigFieldsProviderAliyunWAF,
   [DEPLOYMENT_PROVIDERS.APISIX]: BizDeployNodeConfigFieldsProviderAPISIX,
+  [DEPLOYMENT_PROVIDERS.ASIAISPCDN]: BizDeployNodeConfigFieldsProviderAsiaISPCDN,
   [DEPLOYMENT_PROVIDERS.AWS_ACM]: BizDeployNodeConfigFieldsProviderAWSACM,
   [DEPLOYMENT_PROVIDERS.AWS_ALB]: BizDeployNodeConfigFieldsProviderAWSALB,
   [DEPLOYMENT_PROVIDERS.AWS_AMPLIFY]: BizDeployNodeConfigFieldsProviderAWSAmplify,
@@ -264,6 +269,7 @@ const providerComponentMap: Partial<Record<DeploymentProviderType, React.Compone
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_CLB]: BizDeployNodeConfigFieldsProviderTencentCloudCLB,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_COS]: BizDeployNodeConfigFieldsProviderTencentCloudCOS,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_CSS]: BizDeployNodeConfigFieldsProviderTencentCloudCSS,
+  [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_DDOSPRO]: BizDeployNodeConfigFieldsProviderTencentCloudDDoSPro,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_ECDN]: BizDeployNodeConfigFieldsProviderTencentCloudECDN,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_EO]: BizDeployNodeConfigFieldsProviderTencentCloudEO,
   [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_EOMAKERS]: BizDeployNodeConfigFieldsProviderTencentCloudEOMakers,

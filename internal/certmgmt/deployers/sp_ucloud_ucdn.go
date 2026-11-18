@@ -17,8 +17,8 @@ func init() {
 		}
 
 		provider, err := dplyimpl.NewDeployer(&dplyimpl.DeployerConfig{
-			PrivateKey:         credentials.PrivateKey,
 			PublicKey:          credentials.PublicKey,
+			PrivateKey:         credentials.PrivateKey,
 			ProjectId:          credentials.ProjectId,
 			Endpoint:           xmaps.GetString(options.ProviderExtendedConfig, "endpoint"),
 			DomainMatchPattern: xmaps.GetString(options.ProviderExtendedConfig, "domainMatchPattern"),

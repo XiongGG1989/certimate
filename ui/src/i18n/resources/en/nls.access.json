@@ -87,8 +87,14 @@
       "label": "ACME EAB HMAC key",
       "placeholder": "Please enter ACME EAB HMAC key"
     },
+    "shared_acme_eab_pair": {
+      "errmsg": "Please fill in both the ACME EAB KID and the ACME EAB HMAC key, or leave both empty to use automatic issuance."
+    },
     "shared_allow_insecure_conns": {
       "label": "Allow insecure SSL/TLS connections"
+    },
+    "shared_ca_access_optional": {
+      "help": "Leave it empty to automatically obtain the EAB credentials from {{provider}} with the certificate contact email above. Note: the contact email will be sent to {{provider}}. You can still select an existing credential to use manual EAB credentials."
     },
 
     "1panel_server_url": {
@@ -103,7 +109,7 @@
     "1panel_api_key": {
       "label": "1Panel API key",
       "placeholder": "Please enter 1Panel API key",
-      "tooltip": "For more information, see <a href=\"https://docs.1panel.pro/dev_manual/api_manual/\" target=\"_blank\">https://docs.1panel.pro/dev_manual/api_manual/</a>"
+      "tooltip": "For more information, see <a href=\"https://1panel.pro/docs/v2/dev_manual/api_manual\" target=\"_blank\">https://1panel.pro/docs/v2/dev_manual/api_manual</a>"
     },
     "35cn_username": {
       "label": "35.cn agent username",
@@ -219,6 +225,14 @@
       "label": "ArvanCloud API key",
       "placeholder": "Please enter ArvanCloud API key",
       "tooltip": "For more information, see <a href=\"https://docs.arvancloud.ir/en/developer-tools/api/api-key\" target=\"_blank\">https://docs.arvancloud.ir/en/developer-tools/api/api-key</a>"
+    },
+    "asiaispcdn_access_key_id": {
+      "label": "Asia-ISP CDN AccessKeyID",
+      "placeholder": "Please enter Asia-ISP CDN AccessKeyID"
+    },
+    "asiaispcdn_access_key_secret": {
+      "label": "Asia-ISP CDN AccessKeySecret",
+      "placeholder": "Please enter Asia-ISP CDN AccessKeySecret"
     },
     "aws_auth_method": {
       "label": "AWS API authentication method",
@@ -893,6 +907,18 @@
         }
       }
     },
+    "lecdn_auth_method": {
+      "label": "LeCDN API authentication method",
+      "placeholder": "Please select LeCDN API authentication method",
+      "option": {
+        "password": {
+          "label": "Username & Password"
+        },
+        "apikey": {
+          "label": "API key"
+        }
+      }
+    },
     "lecdn_username": {
       "label": "LeCDN username",
       "placeholder": "Please enter LeCDN username"
@@ -901,6 +927,10 @@
       "label": "LeCDN password",
       "placeholder": "Please enter LeCDN password"
     },
+    "lecdn_api_key": {
+      "label": "LeCDN API key",
+      "placeholder": "Please enter LeCDN API key"
+    },
     "linode_access_token": {
       "label": "Linode access token",
       "placeholder": "Please enter Linode access token",
@@ -908,6 +938,15 @@
     },
     "litessl_eab": {
       "guide": "Learn more about using EAB key in LiteSSL: <br><a href=\"https://freessl.cn/automation/eab-manager\" target=\"_blank\">https://freessl.cn/automation/eab-manager</a>"
+    },
+    "luadns_username": {
+      "label": "LuaDNS username",
+      "placeholder": "Please enter LuaDNS username"
+    },
+    "luadns_api_key": {
+      "label": "LuaDNS API key",
+      "placeholder": "Please enter LuaDNS API key",
+      "tooltip": "For more information, see <a href=\"https://app.luadns.com/api_keys\" target=\"_blank\">https://app.luadns.com/api_keys</a>"
     },
     "matrix_server_url": {
       "label": "Matrix server URL",
@@ -1240,11 +1279,19 @@
     },
     "rfc2136_tsig_key": {
       "label": "TSIG authentication key (Optional)",
-      "placeholder": "Please enter TSIG authentication key"
+      "placeholder": "Please enter TSIG authentication key",
+      "errmsg": {
+        "unpaired": "Please fill in both the TSIG key and the TSIG secret, or leave both empty to send unsigned updates."
+      },
+      "tooltip": "The name of the TSIG key configured on your DNS server, e.g. the name of the <b>key</b> statement in BIND. If only one of the key and the secret is provided, the configuration is invalid: leaving both empty sends unsigned updates, while a wrong key name or secret causes the server to reject the update."
     },
     "rfc2136_tsig_secret": {
       "label": "TSIG authentication secret (Optional)",
-      "placeholder": "Please enter TSIG authentication secret"
+      "placeholder": "Please enter TSIG authentication secret",
+      "errmsg": {
+        "unpaired": "Please fill in both the TSIG key and the TSIG secret, or leave both empty to send unsigned updates."
+      },
+      "tooltip": "The Base64-encoded secret of the TSIG key. It and the key name must be provided together."
     },
     "rfc2136_tsig_gss_realm": {
       "label": "GSS-TSIG Kerberos realm (Optional)",
@@ -1403,6 +1450,13 @@
       "label": "SSH key passphrase (Optional)",
       "placeholder": "Please enter SSH key passphrase"
     },
+    "ssh_key_certificate": {
+      "label": "SSH user certificate (Optional)",
+      "placeholder": "Please enter SSH user certificate\r\n\r\nssh-ed25519-cert-v01@openssh.com AAAA...",
+      "errmsg": {
+        "invalid": "Invalid SSH user certificate"
+      }
+    },
     "ssh_jump_servers": {
       "label": "Jump servers (Optional)",
       "errmsg": {
@@ -1483,14 +1537,14 @@
     "todaynic_agent": {
       "guide": "TodayNIC.com API only supports calls from agents. Learn more about this: <br><a href=\"https://docs.apipost.net/docs/detail/49dcef10a876000?target_id=371b384\" target=\"_blank\">https://docs.apipost.net/docs/detail/49dcef10a876000?target_id=371b384</a>"
     },
-    "ucloud_private_key": {
-      "label": "UCloud API private key",
-      "placeholder": "Please enter UCloud API private key",
-      "tooltip": "For more information, see <a href=\"https://console.ucloud-global.com/uaccount/api_manage\" target=\"_blank\">https://console.ucloud-global.com/uaccount/api_manage</a>"
-    },
     "ucloud_public_key": {
       "label": "UCloud API public key",
-      "placeholder": "Please enter UCloud API public key",
+      "placeholder": "Please enter UCloud API public key (AccessKeyID)",
+      "tooltip": "For more information, see <a href=\"https://console.ucloud-global.com/uaccount/api_manage\" target=\"_blank\">https://console.ucloud-global.com/uaccount/api_manage</a>"
+    },
+    "ucloud_private_key": {
+      "label": "UCloud API private key",
+      "placeholder": "Please enter UCloud API private key (AccessKeySecret)",
       "tooltip": "For more information, see <a href=\"https://console.ucloud-global.com/uaccount/api_manage\" target=\"_blank\">https://console.ucloud-global.com/uaccount/api_manage</a>"
     },
     "ucloud_project_id": {
@@ -1587,6 +1641,7 @@
     "webhook_preset_data": {
       "": "Use preset Webhook",
       "bark": "Bark",
+      "boop": "Boop",
       "gotify": "Gotify",
       "messagenest": "Message Nest",
       "ntfy": "ntfy",
@@ -1657,6 +1712,12 @@
     },
     "zerossl_eab": {
       "guide": "Learn more about using EAB key in ZeroSSL: <br><a href=\"https://zerossl.com/documentation/acme/\" target=\"_blank\">https://zerossl.com/documentation/acme/</a>"
+    },
+    "zerossl_eab_auto": {
+      "guide": "Leave both fields empty and each workflow using the global settings will automatically obtain the EAB credentials from ZeroSSL with its certificate contact email. Note: the contact email will be sent to ZeroSSL. You can also fill in both fields to use your own EAB credentials."
+    },
+    "zerossl_eab_auto_access": {
+      "guide": "Leave both fields empty and each workflow using this authorization will automatically obtain the EAB credentials from ZeroSSL with its certificate contact email. Note: the contact email will be sent to ZeroSSL. You can also fill in both fields to use your own EAB credentials."
     }
   }
 }

@@ -29,6 +29,7 @@ export const ACCESS_PROVIDERS = Object.freeze(
     ALIYUN: "aliyun",
     APISIX: "apisix",
     ARVANCLOUD: "arvancloud",
+    ASIAISPCDN: "asiaispcdn",
     AWS: "aws",
     AXISNOW: "axisnow",
     AZURE: "azure",
@@ -93,6 +94,7 @@ export const ACCESS_PROVIDERS = Object.freeze(
     LETSENCRYPTSTAGING: "letsencryptstaging",
     LINODE: "linode",
     LITESSL: "litessl",
+    LUADNS: "luadns",
     LOCAL: "local",
     MATRIX: "matrix",
     MATTERMOST: "mattermost",
@@ -221,6 +223,7 @@ export const accessProvidersMap: Map<AccessProvider["type"] | string, AccessProv
       [ACCESS_PROVIDERS.BAOTAPANELGO, "provider.baotapanelgo", "/imgs/providers/baota.svg", [ACCESS_USAGES.HOSTING]],
       [ACCESS_PROVIDERS.BAOTAWAF, "provider.baotawaf", "/imgs/providers/baota.svg", [ACCESS_USAGES.HOSTING]],
       [ACCESS_PROVIDERS.DOKPLOY, "provider.dokploy", "/imgs/providers/dokploy.svg", [ACCESS_USAGES.HOSTING]],
+      [ACCESS_PROVIDERS.ASIAISPCDN, "provider.asiaispcdn", "/imgs/providers/asiaispcdn.png", [ACCESS_USAGES.HOSTING]],
       [ACCESS_PROVIDERS.AXISNOW, "provider.axisnow", "/imgs/providers/axisnow.png", [ACCESS_USAGES.HOSTING]],
       [ACCESS_PROVIDERS.CDNFLY, "provider.cdnfly", "/imgs/providers/cdnfly.svg", [ACCESS_USAGES.HOSTING]],
       [ACCESS_PROVIDERS.GOEDGE, "provider.goedge", "/imgs/providers/goedge.png", [ACCESS_USAGES.HOSTING]],
@@ -257,6 +260,7 @@ export const accessProvidersMap: Map<AccessProvider["type"] | string, AccessProv
       [ACCESS_PROVIDERS.HOSTINGER, "provider.hostinger", "/imgs/providers/hostinger.svg", [ACCESS_USAGES.DNS]],
       [ACCESS_PROVIDERS.INFOMANIAK, "provider.infomaniak", "/imgs/providers/infomaniak.svg", [ACCESS_USAGES.DNS]],
       [ACCESS_PROVIDERS.IONOS, "provider.ionos", "/imgs/providers/ionos.svg", [ACCESS_USAGES.DNS]],
+      [ACCESS_PROVIDERS.LUADNS, "provider.luadns", "/imgs/providers/luadns.png", [ACCESS_USAGES.DNS]],
       [ACCESS_PROVIDERS.NAMECHEAP, "provider.namecheap", "/imgs/providers/namecheap.svg", [ACCESS_USAGES.DNS]],
       [ACCESS_PROVIDERS.NAMEDOTCOM, "provider.namedotcom", "/imgs/providers/namedotcom.svg", [ACCESS_USAGES.DNS]],
       [ACCESS_PROVIDERS.NAMESILO, "provider.namesilo", "/imgs/providers/namesilo.svg", [ACCESS_USAGES.DNS]],
@@ -341,6 +345,7 @@ export type CAProviderType = (typeof CA_PROVIDERS)[keyof typeof CA_PROVIDERS];
 
 export interface CAProvider extends BaseProviderWithAccess<CAProviderType> {
   description?: string;
+  accessOptional: boolean;
 }
 
 export const caProvidersMap: Map<CAProvider["type"] | string, CAProvider> = new Map(
@@ -358,11 +363,11 @@ export const caProvidersMap: Map<CAProvider["type"] | string, CAProvider> = new 
       [CA_PROVIDERS.GOOGLETRUSTSERVICES, "pki.goog"],
       [CA_PROVIDERS.SECTIGO, "sectigo.com"],
       [CA_PROVIDERS.SSLCOM, "ssl.com"],
-      [CA_PROVIDERS.ZEROSSL, "zerossl.com"],
+      [CA_PROVIDERS.ZEROSSL, "zerossl.com", undefined, "accessOptional"],
       [CA_PROVIDERS.LITESSL, "litessl.cn (freessl.cn)"],
       [CA_PROVIDERS.ACMECA, "ACME v2 (RFC 8555)"],
-    ] satisfies Array<[CAProviderType, string, "builtin"] | [CAProviderType, string]>
-  ).map(([type, description, builtin]) => [
+    ] satisfies Array<[CAProviderType, string, ("builtin" | undefined)?, ("accessOptional" | undefined)?]>
+  ).map(([type, description, builtin, accessOptional]) => [
     type,
     {
       type: type,
@@ -371,6 +376,7 @@ export const caProvidersMap: Map<CAProvider["type"] | string, CAProvider> = new 
       icon: accessProvidersMap.get(type.split("-")[0])!.icon,
       provider: type.split("-")[0] as AccessProviderType,
       builtin: builtin === "builtin",
+      accessOptional: accessOptional === "accessOptional",
     },
   ])
 );
@@ -439,6 +445,7 @@ export const ACME_DNS01_PROVIDERS = Object.freeze(
     JDCLOUD: `${ACCESS_PROVIDERS.JDCLOUD}`, // 兼容旧值，等同于 `JDCLOUD_DNS`
     JDCLOUD_DNS: `${ACCESS_PROVIDERS.JDCLOUD}-dns`,
     LINODE: `${ACCESS_PROVIDERS.LINODE}`,
+    LUADNS: `${ACCESS_PROVIDERS.LUADNS}`,
     NAMECHEAP: `${ACCESS_PROVIDERS.NAMECHEAP}`,
     NAMEDOTCOM: `${ACCESS_PROVIDERS.NAMEDOTCOM}`,
     NAMESILO: `${ACCESS_PROVIDERS.NAMESILO}`,
@@ -525,6 +532,7 @@ export const acmeDns01ProvidersMap: Map<ACMEDns01Provider["type"] | string, ACME
       [ACME_DNS01_PROVIDERS.INFOMANIAK, "provider.infomaniak"],
       [ACME_DNS01_PROVIDERS.IONOS, "provider.ionos"],
       [ACME_DNS01_PROVIDERS.LINODE, "provider.linode"],
+      [ACME_DNS01_PROVIDERS.LUADNS, "provider.luadns"],
       [ACME_DNS01_PROVIDERS.NAMECHEAP, "provider.namecheap"],
       [ACME_DNS01_PROVIDERS.NAMEDOTCOM, "provider.namedotcom"],
       [ACME_DNS01_PROVIDERS.NAMESILO, "provider.namesilo"],
@@ -638,11 +646,13 @@ export const DEPLOYMENT_PROVIDERS = Object.freeze(
     ALIYUN_FC: `${ACCESS_PROVIDERS.ALIYUN}-fc`,
     ALIYUN_GA: `${ACCESS_PROVIDERS.ALIYUN}-ga`,
     ALIYUN_LIVE: `${ACCESS_PROVIDERS.ALIYUN}-live`,
+    ALIYUN_MSE: `${ACCESS_PROVIDERS.ALIYUN}-mse`,
     ALIYUN_NLB: `${ACCESS_PROVIDERS.ALIYUN}-nlb`,
     ALIYUN_OSS: `${ACCESS_PROVIDERS.ALIYUN}-oss`,
     ALIYUN_VOD: `${ACCESS_PROVIDERS.ALIYUN}-vod`,
     ALIYUN_WAF: `${ACCESS_PROVIDERS.ALIYUN}-waf`,
     APISIX: `${ACCESS_PROVIDERS.APISIX}`,
+    ASIAISPCDN: `${ACCESS_PROVIDERS.ASIAISPCDN}`,
     AWS_ACM: `${ACCESS_PROVIDERS.AWS}-acm`,
     AWS_ALB: `${ACCESS_PROVIDERS.AWS}-alb`,
     AWS_AMPLIFY: `${ACCESS_PROVIDERS.AWS}-amplify`,
@@ -742,6 +752,7 @@ export const DEPLOYMENT_PROVIDERS = Object.freeze(
     TENCENTCLOUD_CLB: `${ACCESS_PROVIDERS.TENCENTCLOUD}-clb`,
     TENCENTCLOUD_COS: `${ACCESS_PROVIDERS.TENCENTCLOUD}-cos`,
     TENCENTCLOUD_CSS: `${ACCESS_PROVIDERS.TENCENTCLOUD}-css`,
+    TENCENTCLOUD_DDOSPRO: `${ACCESS_PROVIDERS.TENCENTCLOUD}-ddospro`,
     TENCENTCLOUD_ECDN: `${ACCESS_PROVIDERS.TENCENTCLOUD}-ecdn`,
     TENCENTCLOUD_EO: `${ACCESS_PROVIDERS.TENCENTCLOUD}-eo`,
     TENCENTCLOUD_EOMAKERS: `${ACCESS_PROVIDERS.TENCENTCLOUD}-eomakers`,
@@ -836,6 +847,7 @@ export const deploymentProvidersMap: Map<DeploymentProvider["type"] | string, De
       [DEPLOYMENT_PROVIDERS.ALIYUN_VOD, "provider.aliyun_vod", DEPLOYMENT_CATEGORIES.AV],
       [DEPLOYMENT_PROVIDERS.ALIYUN_FC, "provider.aliyun_fc", DEPLOYMENT_CATEGORIES.SERVERLESS],
       [DEPLOYMENT_PROVIDERS.ALIYUN_APIGW, "provider.aliyun_apigw", DEPLOYMENT_CATEGORIES.APIGATEWAY],
+      [DEPLOYMENT_PROVIDERS.ALIYUN_MSE, "provider.aliyun_mse", DEPLOYMENT_CATEGORIES.APIGATEWAY],
       [DEPLOYMENT_PROVIDERS.ALIYUN_GA, "provider.aliyun_ga", DEPLOYMENT_CATEGORIES.ACCELERATOR],
       [DEPLOYMENT_PROVIDERS.ALIYUN_CAS, "provider.aliyun_cas_upload", DEPLOYMENT_CATEGORIES.SSL],
       [DEPLOYMENT_PROVIDERS.ALIYUN_CAS_DEPLOY, "provider.aliyun_cas_deploy", DEPLOYMENT_CATEGORIES.SSL],
@@ -846,6 +858,7 @@ export const deploymentProvidersMap: Map<DeploymentProvider["type"] | string, De
       [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_EOMAKERS, "provider.tencentcloud_eomakers", DEPLOYMENT_CATEGORIES.CDN],
       [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_CLB, "provider.tencentcloud_clb", DEPLOYMENT_CATEGORIES.LOADBALANCE],
       [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_WAF, "provider.tencentcloud_waf", DEPLOYMENT_CATEGORIES.FIREWALL],
+      [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_DDOSPRO, "provider.tencentcloud_ddospro", DEPLOYMENT_CATEGORIES.FIREWALL],
       [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_CSS, "provider.tencentcloud_css", DEPLOYMENT_CATEGORIES.AV],
       [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_VOD, "provider.tencentcloud_vod", DEPLOYMENT_CATEGORIES.AV],
       [DEPLOYMENT_PROVIDERS.TENCENTCLOUD_SCF, "provider.tencentcloud_scf", DEPLOYMENT_CATEGORIES.SERVERLESS],
@@ -948,6 +961,7 @@ export const deploymentProvidersMap: Map<DeploymentProvider["type"] | string, De
       [DEPLOYMENT_PROVIDERS.RAINYUN_SSLCENTER, "provider.rainyun_sslcenter_upload", DEPLOYMENT_CATEGORIES.SSL],
       [DEPLOYMENT_PROVIDERS.UNICLOUD_WEBHOST, "provider.unicloud_webhost", DEPLOYMENT_CATEGORIES.WEBSITE],
       [DEPLOYMENT_PROVIDERS.MOHUA_MVH, "provider.mohua_mvh", DEPLOYMENT_CATEGORIES.WEBSITE],
+      [DEPLOYMENT_PROVIDERS.ASIAISPCDN, "provider.asiaispcdn", DEPLOYMENT_CATEGORIES.CDN],
       [DEPLOYMENT_PROVIDERS.AXISNOW, "provider.axisnow", DEPLOYMENT_CATEGORIES.CDN],
       [DEPLOYMENT_PROVIDERS.CDNFLY, "provider.cdnfly", DEPLOYMENT_CATEGORIES.CDN],
       [DEPLOYMENT_PROVIDERS.FLEXCDN, "provider.flexcdn", DEPLOYMENT_CATEGORIES.CDN],
