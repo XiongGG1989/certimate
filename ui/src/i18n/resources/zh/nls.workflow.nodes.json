@@ -2669,7 +2669,10 @@
       "ucloud_ucdn_domains": {
         "label": "优刻得 UCDN 加速域名",
         "placeholder": "请输入优刻得 UCDN 加速域名",
+        "select_placeholder": "请选择与上游证书匹配的 UCDN 加速域名",
+        "no_certificate_matches": "上游证书尚不可读取，或没有匹配的 UCDN 加速域名",
         "help": "每行填写一个加速域名；粘贴以半角分号、逗号分隔的域名时会自动换行。",
+        "cert_san_help": "仅显示与上游证书 SAN 匹配的 UCDN 加速域名；运行时会使用实际输入证书再次校验。",
         "tooltip": "这是什么？请参阅 <a href=\"https://console.ucloud.cn/ucdn\" target=\"_blank\">https://console.ucloud.cn/ucdn</a>"
       },
       "ucloud_uclb_endpoint": {

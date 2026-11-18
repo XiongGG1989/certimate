@@ -14,6 +14,7 @@ import (
 	"github.com/certimate-go/certimate/pkg/core"
 	cmgrimpl "github.com/certimate-go/certimate/pkg/core/certmgr/providers/ucloud-ussl"
 	ucloudsdk "github.com/certimate-go/certimate/pkg/sdk3rd/ucloud/ucdn"
+	xcerthostname "github.com/certimate-go/certimate/pkg/utils/cert/hostname"
 	xloop "github.com/certimate-go/certimate/pkg/utils/loop"
 )
 
@@ -31,8 +32,15 @@ type DeployerConfig struct {
 	ProjectId string `json:"projectId,omitempty"`
 	// 优刻得接口端点。
 	Endpoint string `json:"endpoint,omitempty"`
-	// 加速域名。
-	Domains []string `json:"domains"`
+	// 域名匹配模式。
+	// 零值时默认值 [DOMAIN_MATCH_PATTERN_EXACT]。
+	DomainMatchPattern string `json:"domainMatchPattern,omitempty"`
+	// Acceleration domains used for exact matching.
+	ExactDomains []string `json:"exactDomains,omitempty"`
+	// Candidate acceleration domains used for certificate SAN matching.
+	CertSanDomains []string `json:"certSanDomains,omitempty"`
+	// Acceleration domains stored by configurations created before the match fields were split.
+	Domains []string `json:"domains,omitempty"`
 	// 加速域名 ID。仅用于兼容旧配置。
 	DomainIds []string `json:"domainIds,omitempty"`
 }
@@ -92,17 +100,14 @@ func (d *Deployer) SetLogger(logger *slog.Logger) {
 }
 
 func (d *Deployer) Deploy(ctx context.Context, certPEM, privkeyPEM string) (*DeployResult, error) {
-	domains := normalizeDomains(d.config.Domains)
-	domainIds := normalizeDomainIds(d.config.DomainIds)
-	if len(domains) == 0 && len(domainIds) == 0 {
-		return nil, fmt.Errorf("config `domains` is required")
-	}
-
-	// 优先按加速域名查询；仅当新字段为空时回退到旧 DomainId 配置。
-	domainConfigs, err := d.getDomainConfigs(domains, domainIds)
+	// 获取待部署的域名列表。
+	domainConfigs, err := d.resolveDomainConfigs(certPEM)
 	if err != nil {
 		return nil, err
 	}
+	d.logger.Info("found ucdn domains to deploy", slog.Any("domains", lo.Map(domainConfigs, func(item ucloudsdk.DomainConfigInfo, _ int) string {
+		return item.Domain
+	})))
 
 	// 所有域名共用同一份已上传证书。
 	upres, err := d.sdkCertmgr.Upload(ctx, certPEM, privkeyPEM)
@@ -133,6 +138,47 @@ func (d *Deployer) Deploy(ctx context.Context, certPEM, privkeyPEM string) (*Dep
 	return &DeployResult{}, nil
 }
 
+func (d *Deployer) resolveDomainConfigs(certPEM string) ([]ucloudsdk.DomainConfigInfo, error) {
+	switch d.config.DomainMatchPattern {
+	case "", DOMAIN_MATCH_PATTERN_EXACT:
+		domains := normalizeDomains(d.config.ExactDomains)
+		if len(domains) == 0 {
+			domains = normalizeDomains(d.config.Domains)
+		}
+		domainIds := normalizeDomainIds(d.config.DomainIds)
+		if len(domains) == 0 && len(domainIds) == 0 {
+			return nil, fmt.Errorf("config `domains` is required")
+		}
+
+		// 优先按加速域名查询；仅当新字段为空时回退到旧 DomainId 配置。
+		return d.getDomainConfigs(domains, domainIds)
+
+	case DOMAIN_MATCH_PATTERN_CERTSAN:
+		// Keep certificate-match candidates separate from exact-match domains.
+		// Fall back to the shared Domains field for configurations saved before this split.
+		domains := normalizeDomains(d.config.CertSanDomains)
+		if len(domains) == 0 {
+			domains = normalizeDomains(d.config.Domains)
+		}
+		domainConfigs, err := d.getDomainConfigs(domains, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		domainConfigs = lo.Filter(domainConfigs, func(item ucloudsdk.DomainConfigInfo, _ int) bool {
+			return xcerthostname.IsMatchByCertificatePEM(certPEM, item.Domain)
+		})
+		if len(domainConfigs) == 0 {
+			return nil, fmt.Errorf("could not find any domains matched by certificate")
+		}
+
+		return domainConfigs, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported domain match pattern: '%s'", d.config.DomainMatchPattern)
+	}
+}
+
 func (d *Deployer) getDomainConfigs(domains, domainIds []string) ([]ucloudsdk.DomainConfigInfo, error) {
 	// REF: https://docs.ucloud.cn/api/ucdn-api/get_ucdn_domain_config
 	request := d.sdkClient.NewGetUcdnDomainConfigRequest()
@@ -152,6 +198,9 @@ func (d *Deployer) getDomainConfigs(domains, domainIds []string) ([]ucloudsdk.Do
 	}
 	if response == nil {
 		return nil, fmt.Errorf("sdk request 'ucdn.GetUcdnDomainConfig' returned an empty response")
+	}
+	if len(targets) == 0 {
+		return response.DomainList, nil
 	}
 
 	return orderDomainConfigs(targets, response.DomainList, lookupByDomain)
@@ -238,6 +287,34 @@ func orderDomainConfigs(targets []string, domainConfigs []ucloudsdk.DomainConfig
 	}
 
 	return result, nil
+}
+
+func ListDomains(ctx context.Context, config *DeployerConfig) ([]string, error) {
+	if config == nil {
+		return nil, fmt.Errorf("the configuration of the deployer provider is nil")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	client, err := createSDKClient(config.PrivateKey, config.PublicKey, config.ProjectId, config.Endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("could not create client: %w", err)
+	}
+
+	request := client.NewGetUcdnDomainConfigRequest()
+	response, err := client.GetUcdnDomainConfig(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute sdk request 'ucdn.GetUcdnDomainConfig': %w", err)
+	}
+	if response == nil {
+		return nil, fmt.Errorf("sdk request 'ucdn.GetUcdnDomainConfig' returned an empty response")
+	}
+
+	domains := lo.Map(response.DomainList, func(item ucloudsdk.DomainConfigInfo, _ int) string {
+		return item.Domain
+	})
+	return normalizeDomains(domains), nil
 }
 
 func createSDKClient(privateKey, publicKey, projectId, endpoint string) (*ucloudsdk.UCDNClient, error) {

@@ -2670,7 +2670,10 @@
       "ucloud_ucdn_domains": {
         "label": "UCloud UCDN acceleration domains",
         "placeholder": "Enter UCloud UCDN acceleration domains",
+        "select_placeholder": "Select UCDN acceleration domains matching the upstream certificate",
+        "no_certificate_matches": "The upstream certificate is not available yet, or no UCDN acceleration domains match it",
         "help": "Enter one acceleration domain per line. Domains pasted with semicolon or comma separators are converted to separate lines.",
+        "cert_san_help": "Only UCDN acceleration domains matching the upstream certificate SANs are shown. The actual input certificate is checked again at runtime.",
         "tooltip": "For more information, see <a href=\"https://console.ucloud-global.com/ucdn\" target=\"_blank\">https://console.ucloud-global.com/ucdn</a>"
       },
       "ucloud_uclb_endpoint": {

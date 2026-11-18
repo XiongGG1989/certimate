@@ -2,11 +2,19 @@ package uclouducdn
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"log/slog"
+	"math/big"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/certimate-go/certimate/pkg/core"
 	ucloudsdk "github.com/certimate-go/certimate/pkg/sdk3rd/ucloud/ucdn"
@@ -92,8 +100,9 @@ func TestDeployResolvesDomainsToDomainIds(t *testing.T) {
 	certmgr := &fakeCertmgr{uploadResult: &core.CertmgrUploadResult{CertId: "123", CertName: "cert-name"}}
 	deployer := &Deployer{
 		config: &DeployerConfig{
-			Domains:   []string{" CDN-A.EXAMPLE.COM, cdn-b.example.com\ncdn-a.example.com "},
-			DomainIds: []string{"legacy-domain-id"},
+			ExactDomains: []string{" CDN-A.EXAMPLE.COM, cdn-b.example.com\ncdn-a.example.com "},
+			Domains:      []string{"legacy.example.com"},
+			DomainIds:    []string{"legacy-domain-id"},
 		},
 		logger:     slog.New(slog.DiscardHandler),
 		sdkClient:  client,
@@ -114,6 +123,122 @@ func TestDeployResolvesDomainsToDomainIds(t *testing.T) {
 	}
 	if certmgr.uploadCalls != 1 {
 		t.Fatalf("Upload() calls = %d, want 1", certmgr.uploadCalls)
+	}
+}
+
+func TestDeploySupportsLegacyDomainsConfig(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeUCDNClient{
+		domainConfigs: []ucloudsdk.DomainConfigInfo{{
+			Domain: "legacy.example.com", DomainId: "domain-1", AreaCode: "cn", HttpsStatusCn: "enable",
+		}},
+	}
+	certmgr := &fakeCertmgr{uploadResult: &core.CertmgrUploadResult{CertId: "123", CertName: "cert-name"}}
+	deployer := &Deployer{
+		config:     &DeployerConfig{Domains: []string{"legacy.example.com"}},
+		logger:     slog.New(slog.DiscardHandler),
+		sdkClient:  client,
+		sdkCertmgr: certmgr,
+	}
+
+	if _, err := deployer.Deploy(context.Background(), "certificate", "private-key"); err != nil {
+		t.Fatalf("Deploy() error = %v", err)
+	}
+	if !reflect.DeepEqual(client.queriedDomains, []string{"legacy.example.com"}) {
+		t.Fatalf("GetUcdnDomainConfig() domains = %v, want legacy domain", client.queriedDomains)
+	}
+}
+
+func TestDeployMatchesDomainsByCertificateSAN(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeUCDNClient{
+		domainConfigs: []ucloudsdk.DomainConfigInfo{
+			{Domain: "cdn-a.example.com", DomainId: "domain-1", AreaCode: "cn", HttpsStatusCn: "enable"},
+			{Domain: "edge.video.example.com", DomainId: "domain-2", AreaCode: "abroad", HttpsStatusAbroad: "enable"},
+			{Domain: "nested.edge.video.example.com", DomainId: "domain-3", AreaCode: "all"},
+			{Domain: "other.example.net", DomainId: "domain-4", AreaCode: "all"},
+		},
+	}
+	certmgr := &fakeCertmgr{uploadResult: &core.CertmgrUploadResult{CertId: "123", CertName: "cert-name"}}
+	deployer := &Deployer{
+		config: &DeployerConfig{
+			DomainMatchPattern: DOMAIN_MATCH_PATTERN_CERTSAN,
+			Domains:            []string{"exact-only.example.com"},
+			CertSanDomains:     []string{"cdn-a.example.com", "edge.video.example.com", "other.example.net"},
+		},
+		logger:     slog.New(slog.DiscardHandler),
+		sdkClient:  client,
+		sdkCertmgr: certmgr,
+	}
+
+	certPEM := createCertificatePEM(t, []string{"cdn-a.example.com", "*.video.example.com"})
+	if _, err := deployer.Deploy(context.Background(), certPEM, "private-key"); err != nil {
+		t.Fatalf("Deploy() error = %v", err)
+	}
+	if client.queryCalls != 1 {
+		t.Fatalf("GetUcdnDomainConfig() calls = %d, want 1", client.queryCalls)
+	}
+	if !reflect.DeepEqual(client.queriedDomains, []string{"cdn-a.example.com", "edge.video.example.com", "other.example.net"}) || len(client.queriedDomainIds) != 0 {
+		t.Fatalf("GetUcdnDomainConfig() filters = domains %v, domain IDs %v", client.queriedDomains, client.queriedDomainIds)
+	}
+	if got := requestDomainIds(client.updateRequests); !reflect.DeepEqual(got, []string{"domain-1", "domain-2"}) {
+		t.Fatalf("UpdateUcdnDomainHttpsConfigV2() domain IDs = %v", got)
+	}
+	if certmgr.uploadCalls != 1 {
+		t.Fatalf("Upload() calls = %d, want 1", certmgr.uploadCalls)
+	}
+}
+
+func TestDeployDoesNotUploadWhenCertificateMatchesNoDomains(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeUCDNClient{
+		domainConfigs: []ucloudsdk.DomainConfigInfo{{Domain: "other.example.net", DomainId: "domain-1"}},
+	}
+	certmgr := &fakeCertmgr{uploadResult: &core.CertmgrUploadResult{CertId: "123", CertName: "cert-name"}}
+	deployer := &Deployer{
+		config:     &DeployerConfig{DomainMatchPattern: DOMAIN_MATCH_PATTERN_CERTSAN},
+		logger:     slog.New(slog.DiscardHandler),
+		sdkClient:  client,
+		sdkCertmgr: certmgr,
+	}
+
+	certPEM := createCertificatePEM(t, []string{"cdn.example.com"})
+	_, err := deployer.Deploy(context.Background(), certPEM, "private-key")
+	if err == nil || !strings.Contains(err.Error(), "matched by certificate") {
+		t.Fatalf("Deploy() error = %v, want no matched domains error", err)
+	}
+	if client.queryCalls != 1 || len(client.queriedDomains) != 0 || len(client.queriedDomainIds) != 0 {
+		t.Fatalf("GetUcdnDomainConfig() calls = %d, domains = %v, domain IDs = %v; want one unfiltered query", client.queryCalls, client.queriedDomains, client.queriedDomainIds)
+	}
+	if certmgr.uploadCalls != 0 {
+		t.Fatalf("Upload() calls = %d, want 0", certmgr.uploadCalls)
+	}
+	if len(client.updateRequests) != 0 {
+		t.Fatalf("update calls = %d, want 0", len(client.updateRequests))
+	}
+}
+
+func TestDeployRejectsUnsupportedDomainMatchPattern(t *testing.T) {
+	t.Parallel()
+
+	client := &fakeUCDNClient{}
+	certmgr := &fakeCertmgr{uploadResult: &core.CertmgrUploadResult{CertId: "123", CertName: "cert-name"}}
+	deployer := &Deployer{
+		config:     &DeployerConfig{DomainMatchPattern: "unsupported"},
+		logger:     slog.New(slog.DiscardHandler),
+		sdkClient:  client,
+		sdkCertmgr: certmgr,
+	}
+
+	_, err := deployer.Deploy(context.Background(), "certificate", "private-key")
+	if err == nil || !strings.Contains(err.Error(), "unsupported domain match pattern") {
+		t.Fatalf("Deploy() error = %v, want unsupported match pattern error", err)
+	}
+	if client.queryCalls != 0 || certmgr.uploadCalls != 0 {
+		t.Fatalf("query calls = %d, upload calls = %d; want none", client.queryCalls, certmgr.uploadCalls)
 	}
 }
 
@@ -210,6 +335,7 @@ type fakeUCDNClient struct {
 	updateErrors     map[string]error
 	queriedDomains   []string
 	queriedDomainIds []string
+	queryCalls       int
 	updateRequests   []*ucloudsdk.UpdateUcdnDomainHttpsConfigV2Request
 }
 
@@ -218,6 +344,7 @@ func (c *fakeUCDNClient) NewGetUcdnDomainConfigRequest() *ucloudsdk.GetUcdnDomai
 }
 
 func (c *fakeUCDNClient) GetUcdnDomainConfig(request *ucloudsdk.GetUcdnDomainConfigRequest) (*ucloudsdk.GetUcdnDomainConfigResponse, error) {
+	c.queryCalls++
 	c.queriedDomains = append([]string(nil), request.Domain...)
 	c.queriedDomainIds = append([]string(nil), request.DomainId...)
 	return &ucloudsdk.GetUcdnDomainConfigResponse{DomainList: c.domainConfigs}, c.queryError
@@ -233,6 +360,29 @@ func (c *fakeUCDNClient) UpdateUcdnDomainHttpsConfigV2(request *ucloudsdk.Update
 		return &ucloudsdk.UpdateUcdnDomainHttpsConfigV2Response{}, c.updateErrors[*request.DomainId]
 	}
 	return &ucloudsdk.UpdateUcdnDomainHttpsConfigV2Response{}, nil
+}
+
+func createCertificatePEM(t *testing.T, dnsNames []string) string {
+	t.Helper()
+
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("GenerateKey() error = %v", err)
+	}
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{CommonName: dnsNames[0]},
+		DNSNames:     dnsNames,
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+	derBytes, err := x509.CreateCertificate(rand.Reader, template, template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		t.Fatalf("CreateCertificate() error = %v", err)
+	}
+
+	return string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: derBytes}))
 }
 
 type fakeCertmgr struct {

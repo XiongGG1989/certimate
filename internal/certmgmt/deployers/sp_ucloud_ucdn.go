@@ -17,12 +17,15 @@ func init() {
 		}
 
 		provider, err := dplyimpl.NewDeployer(&dplyimpl.DeployerConfig{
-			PrivateKey: credentials.PrivateKey,
-			PublicKey:  credentials.PublicKey,
-			ProjectId:  credentials.ProjectId,
-			Endpoint:   xmaps.GetString(options.ProviderExtendedConfig, "endpoint"),
-			Domains:    []string{xmaps.GetString(options.ProviderExtendedConfig, "domains")},
-			DomainIds:  []string{xmaps.GetString(options.ProviderExtendedConfig, "domainId")},
+			PrivateKey:         credentials.PrivateKey,
+			PublicKey:          credentials.PublicKey,
+			ProjectId:          credentials.ProjectId,
+			Endpoint:           xmaps.GetString(options.ProviderExtendedConfig, "endpoint"),
+			DomainMatchPattern: xmaps.GetString(options.ProviderExtendedConfig, "domainMatchPattern"),
+			ExactDomains:       []string{xmaps.GetString(options.ProviderExtendedConfig, "exactDomains")},
+			CertSanDomains:     []string{xmaps.GetString(options.ProviderExtendedConfig, "certSanDomains")},
+			Domains:            []string{xmaps.GetString(options.ProviderExtendedConfig, "domains")},
+			DomainIds:          []string{xmaps.GetString(options.ProviderExtendedConfig, "domainId")},
 		})
 		return provider, err
 	})

@@ -6,6 +6,7 @@ import (
 	"github.com/pocketbase/pocketbase/tools/router"
 
 	"github.com/certimate-go/certimate/internal/certificate"
+	"github.com/certimate-go/certimate/internal/certmgmt"
 	"github.com/certimate-go/certimate/internal/notify"
 	"github.com/certimate-go/certimate/internal/repository"
 	"github.com/certimate-go/certimate/internal/rest/handlers"
@@ -14,10 +15,11 @@ import (
 )
 
 var (
-	certificateSvc *certificate.CertificateService
-	workflowSvc    *workflow.WorkflowService
-	statisticsSvc  *statistics.StatisticsService
-	notifySvc      *notify.NotifyService
+	certificateSvc        *certificate.CertificateService
+	deploymentResourceSvc *certmgmt.DeploymentResourceService
+	workflowSvc           *workflow.WorkflowService
+	statisticsSvc         *statistics.StatisticsService
+	notifySvc             *notify.NotifyService
 )
 
 func BindRouter(router *router.Router[*core.RequestEvent]) {
@@ -29,6 +31,7 @@ func BindRouter(router *router.Router[*core.RequestEvent]) {
 	statisticsRepo := repository.NewStatisticsRepository()
 
 	certificateSvc = certificate.NewCertificateService(acmeAccountRepo, certificateRepo)
+	deploymentResourceSvc = certmgmt.NewDeploymentResourceService(accessRepo, certificateRepo)
 	workflowSvc = workflow.NewWorkflowService(workflowRepo, workflowRunRepo)
 	statisticsSvc = statistics.NewStatisticsService(statisticsRepo)
 	notifySvc = notify.NewNotifyService(accessRepo)
@@ -36,6 +39,7 @@ func BindRouter(router *router.Router[*core.RequestEvent]) {
 	group := router.Group("/api")
 	group.Bind(apis.RequireSuperuserAuth())
 	handlers.NewCertificatesHandler(group, certificateSvc)
+	handlers.NewDeploymentResourcesHandler(group, deploymentResourceSvc)
 	handlers.NewWorkflowsHandler(group, workflowSvc)
 	handlers.NewStatisticsHandler(group, statisticsSvc)
 	handlers.NewNotificationsHandler(group, notifySvc)
